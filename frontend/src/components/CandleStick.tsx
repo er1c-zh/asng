@@ -15,6 +15,11 @@ type CandleStickItem = {
   Close: number;
   Vol: number;
   Amount: number;
+
+  FiveAvg: number;
+  TenAvg: number;
+  TwentyFiveAvg: number;
+
   Year: string;
   Month: string;
   Day: string;
@@ -38,28 +43,29 @@ function CandleStickView(props: CandleStickViewProps) {
 
   const zoomEvent = (e: WheelEvent) => {
     e.preventDefault();
+    let countOfStick = range.countOfStick;
+    let end = range.end;
     if (Math.abs(e.deltaX / e.deltaY) > 1.5) {
-      setRange({
-        countOfStick: range.countOfStick,
-        end: Math.max(0, range.end - Math.floor(e.deltaX / 10)),
-      });
+      end = Math.min(
+        Math.max(0, range.end - Math.floor(e.deltaX / 10)),
+        data ? data.length - countOfStick : 0
+      );
     } else if (Math.abs(e.deltaY / e.deltaX) > 1.5) {
-      setRange({
-        countOfStick: Math.max(
-          10,
-          range.countOfStick + Math.floor(e.deltaY / 10)
-        ),
-        end: range.end,
-      });
+      countOfStick = Math.max(
+        10,
+        range.countOfStick + Math.floor(e.deltaY / 10)
+      );
     } else {
-      setRange({
-        countOfStick: Math.max(
-          10,
-          range.countOfStick + Math.floor(e.deltaY / 10)
-        ),
-        end: Math.max(0, range.end - Math.floor(e.deltaX / 10)),
-      });
+      countOfStick = Math.max(
+        10,
+        range.countOfStick + Math.floor(e.deltaY / 10)
+      );
+      end = Math.min(
+        Math.max(0, range.end - Math.floor(e.deltaX / 10)),
+        data ? data.length - countOfStick : 0
+      );
     }
+    setRange({ countOfStick, end });
   };
 
   useEffect(() => {
@@ -90,18 +96,45 @@ function CandleStickView(props: CandleStickViewProps) {
     }
     CandleStick(props.code, props.period, cursor).then((d) => {
       // setCursor(d.Cursor);
+      let preFive = [];
+      let preTen = [];
+      let preTwentyFive = [];
       setData(
-        d.ItemList.map((d) => ({
-          Open: d.Open / 1000.0,
-          High: d.High / 1000.0,
-          Low: d.Low / 1000.0,
-          Close: d.Close / 1000.0,
-          Vol: d.Vol,
-          Amount: d.Amount,
-          Year: d.TimeDesc.slice(0, 4),
-          Month: d.TimeDesc.slice(5, 7),
-          Day: d.TimeDesc.slice(8, 10),
-        }))
+        d.ItemList.map((d) => {
+          preFive.push(d.Close);
+          if (preFive.length > 5) {
+            preFive.shift();
+          }
+          preTen.push(d.Close);
+          if (preTen.length > 10) {
+            preTen.shift();
+          }
+          preTwentyFive.push(d.Close);
+          if (preTwentyFive.length > 25) {
+            preTwentyFive.shift();
+          }
+
+          return {
+            Open: d.Open / 1000.0,
+            High: d.High / 1000.0,
+            Low: d.Low / 1000.0,
+            Close: d.Close / 1000.0,
+            Vol: d.Vol,
+            Amount: d.Amount,
+
+            FiveAvg:
+              preFive.reduce((a, b) => a + b, 0) / (preFive.length * 1000.0),
+            TenAvg:
+              preTen.reduce((a, b) => a + b, 0) / (preTen.length * 1000.0),
+            TwentyFiveAvg:
+              preTwentyFive.reduce((a, b) => a + b, 0) /
+              (preTwentyFive.length * 1000.0),
+
+            Year: d.TimeDesc.slice(0, 4),
+            Month: d.TimeDesc.slice(5, 7),
+            Day: d.TimeDesc.slice(8, 10),
+          };
+        })
       );
     });
   }, [props.code]);
@@ -114,6 +147,7 @@ function CandleStickView(props: CandleStickViewProps) {
   const xAxisRef = useRef<SVGGElement>(null);
   const yAxisRef = useRef<SVGGElement>(null);
   const barGroupRef = useRef<SVGGElement>(null);
+  const avgLineGroupRef = useRef<SVGGElement>(null);
   useEffect(() => {
     if (data === undefined) {
       return;
@@ -190,7 +224,7 @@ function CandleStickView(props: CandleStickViewProps) {
       .join("g")
       .attr(
         "transform",
-        (d, i) => `translate(${xScale.step() * i + xScale.step() / 2 + 3},0)`
+        (d, i) => `translate(${xScale.step() * i + xScale.step() / 2},0)`
       );
 
     gSelector
@@ -204,6 +238,38 @@ function CandleStickView(props: CandleStickViewProps) {
       .attr("y1", (d) => yScale(d.High))
       .attr("y2", (d) => yScale(d.Low))
       .attr("stroke", (d) => (d.Close > d.Open ? "red" : "green"));
+    // avg line
+    const avgLine5 = d3
+      .line<CandleStickItem>()
+      .x((d) => xScale(CandleStickItemIndex(d))! + xScale.step() / 2)
+      .y((d) => yScale(d.FiveAvg));
+    const avgLine10 = d3
+      .line<CandleStickItem>()
+      .x((d) => xScale(CandleStickItemIndex(d))! + xScale.step() / 2)
+      .y((d) => yScale(d.TenAvg));
+    const avgLine25 = d3
+      .line<CandleStickItem>()
+      .x((d) => xScale(CandleStickItemIndex(d))! + xScale.step() / 2)
+      .y((d) => yScale(d.TwentyFiveAvg));
+    d3.select(avgLineGroupRef.current!).selectAll("*").remove();
+    d3.select(avgLineGroupRef.current!)
+      .append("path")
+      .attr("fill", "none")
+      .attr("stroke", "purple")
+      .attr("stroke-width", 1.5)
+      .attr("d", avgLine25(viewData));
+    d3.select(avgLineGroupRef.current!)
+      .append("path")
+      .attr("fill", "none")
+      .attr("stroke", "yellow")
+      .attr("stroke-width", 1.5)
+      .attr("d", avgLine10(viewData));
+    d3.select(avgLineGroupRef.current!)
+      .append("path")
+      .attr("fill", "none")
+      .attr("stroke", "white")
+      .attr("stroke-width", 1.5)
+      .attr("d", avgLine5(viewData));
   }, [data, dimensions, range]);
 
   return (
@@ -213,7 +279,7 @@ function CandleStickView(props: CandleStickViewProps) {
         {data?.length} {Math.min(...(data?.map((d) => d.Low) ?? [0]))}{" "}
         {Math.max(...(data?.map((d) => d.High) ?? [0]))}
       </div>
-      <div ref={containerRef} className="flex grow bg-cyan-900">
+      <div ref={containerRef} className="flex grow">
         <svg
           ref={svgRef}
           width={dimensions.width}
@@ -225,6 +291,7 @@ function CandleStickView(props: CandleStickViewProps) {
           />
           <g ref={yAxisRef} transform={`translate(${ml}, 0)`} />
           <g ref={barGroupRef} transform={`translate(${ml}, 0)`}></g>
+          <g ref={avgLineGroupRef}></g>
         </svg>
       </div>
     </div>
