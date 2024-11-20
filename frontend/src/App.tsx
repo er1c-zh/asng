@@ -6,6 +6,7 @@ import Portal from "./components/Portal";
 import Viewer from "./components/Viewer";
 import StatusBar from "./components/StatusBar";
 import KeyMessage from "./components/KeyMessage";
+import { ServerStatus } from "../wailsjs/go/api/App";
 
 function App() {
   const [appState, setAppState] = useState(Number);
@@ -24,6 +25,11 @@ function App() {
   };
   useEffect(() => {
     document.addEventListener("keydown", terminalHandler);
+    ServerStatus().then((info) => {
+      if (info.Connected) {
+        setAppState(1);
+      }
+    });
     return () => {
       document.removeEventListener("keydown", terminalHandler);
     };

@@ -7,12 +7,12 @@ type ViewerProps = {
 function Viewer(props: ViewerProps) {
   return (
     <div className="flex flex-row w-full h-full">
-      <div className="flex flex-col w-36 h-full bg-gray-500">
+      <div className="flex flex-col w-36 h-full">
         <p>{props.Code}</p>
       </div>
       <div className="flex flex-row w-full">
         <div className="flex flex-col h-full w-1/2">
-          <div className="flex h-1/2 w-full min-w-full bg-red-400">
+          <div className="flex h-1/2 w-full min-w-full">
             <CandleStickView
               code={props.Code}
               period={proto.CandleStickPeriodType.CandleStickPeriodType1Day}

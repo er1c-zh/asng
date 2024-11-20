@@ -32,7 +32,7 @@ function StatusBar(props: StatusBarProps) {
   return (
     <div className="flex flex-row w-full bg-gray-800">
       <div className="flex flex-col h-full w-auto max-w-48">
-        <div className="w-full bg-yellow-900">{time}</div>
+        <div className="w-full bg-yellow-900 text-center">{time}</div>
         <div
           className={`w-full overflow-x-hidden truncate ... ${
             serverStatus.Connected ? "bg-green-700" : "bg-red-900"
