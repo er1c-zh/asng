@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { api, models } from "../../wailsjs/go/models";
+import { ServerStatus } from "../../wailsjs/go/api/App";
 
 type StatusBarProps = {
   Components: React.ComponentType<any>[];
 };
 function StatusBar(props: StatusBarProps) {
   const [time, setTime] = useState("");
-  const [serverInfo, setServerInfo] = useState<models.ServerStatus>(
+  const [serverStatus, setServerStatus] = useState<models.ServerStatus>(
     models.ServerStatus.createFrom({})
   );
   useEffect(() => {
@@ -17,9 +18,12 @@ function StatusBar(props: StatusBarProps) {
     const cancel = EventsOn(
       api.MsgKey.serverStatus,
       (info: models.ServerStatus) => {
-        setServerInfo(info);
+        setServerStatus(info);
       }
     );
+    ServerStatus().then((info) => {
+      setServerStatus(info);
+    });
     return () => {
       clearInterval(ticker);
       cancel();
@@ -31,12 +35,12 @@ function StatusBar(props: StatusBarProps) {
         <div className="w-full bg-yellow-900">{time}</div>
         <div
           className={`w-full overflow-x-hidden truncate ... ${
-            serverInfo.Connected ? "bg-green-700" : "bg-red-900"
+            serverStatus.Connected ? "bg-green-700" : "bg-red-900"
           } text-left px-2`}
         >
-          {serverInfo.ServerInfo
-            ? serverInfo.ServerInfo
-            : serverInfo.Connected
+          {serverStatus.ServerInfo
+            ? serverStatus.ServerInfo
+            : serverStatus.Connected
             ? "Connected"
             : "Disconnected"}
         </div>

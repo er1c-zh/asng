@@ -34,6 +34,10 @@ export function MakeWailsHappy() {
   return window['go']['api']['App']['MakeWailsHappy']();
 }
 
+export function ServerStatus() {
+  return window['go']['api']['App']['ServerStatus']();
+}
+
 export function StockMeta(arg1) {
   return window['go']['api']['App']['StockMeta'](arg1);
 }

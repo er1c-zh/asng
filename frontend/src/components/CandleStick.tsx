@@ -63,7 +63,7 @@ function CandleStickView(props: CandleStickViewProps) {
       if (!range.init) {
         setRange({
           init: true,
-          start: d.ItemList.length - 30,
+          start: d.ItemList.length - 90,
           end: d.ItemList.length,
         });
       }
