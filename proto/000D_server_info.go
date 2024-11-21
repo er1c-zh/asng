@@ -2,16 +2,17 @@ package proto
 
 import (
 	"context"
+	"time"
 )
 
-type ServerInfo struct {
-	BlankCodec
-	StaticCodec
-	Resp ServerInfoResp
-}
-
-type ServerInfoResp struct {
-	Name string
+func (c *Client) Heartbeat() error {
+	t0 := time.Now()
+	_, err := c.ServerInfo()
+	if err != nil {
+		return err
+	}
+	c.Log("heartbeat success, cost: %d ms", time.Since(t0).Milliseconds())
+	return nil
 }
 
 func (c *Client) ServerInfo() (*ServerInfo, error) {
@@ -23,6 +24,16 @@ func (c *Client) ServerInfo() (*ServerInfo, error) {
 		return nil, err
 	}
 	return &s, nil
+}
+
+type ServerInfo struct {
+	BlankCodec
+	StaticCodec
+	Resp ServerInfoResp
+}
+
+type ServerInfoResp struct {
+	Name string
 }
 
 func (s *ServerInfo) FillReqHeader(ctx context.Context, header *ReqHeader) error {

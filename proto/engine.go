@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"time"
+	"math/rand/v2"
 )
 
 type Client struct {
@@ -17,6 +17,12 @@ type Client struct {
 	codec *tdxCodec
 
 	dataConn *ConnRuntime
+
+	done chan struct{}
+
+	// TDX seed
+	handShakeSeed uint32
+	macAddr       [6]byte
 }
 
 type reqPkg struct {
@@ -46,6 +52,13 @@ func (c *Client) init() error {
 	if err != nil {
 		return err
 	}
+	c.handShakeSeed = rand.Uint32()%30000 + 1
+	c.Log("handshake seed: %d", c.handShakeSeed)
+	c.macAddr, err = GenerateMACAddr()
+	if err != nil {
+		return err
+	}
+	c.Log("mac addr: %s", hex.EncodeToString(c.macAddr[:]))
 	return nil
 }
 
@@ -70,6 +83,7 @@ func do[T Codec](c *Client, conn *ConnRuntime, api T) error {
 	reqHeader := ReqHeader{
 		MagicNumber: 0x0C,
 		SeqID:       conn.genSeqID(),
+		Type0:       0,
 		PacketType:  0x01,
 		PkgLen1:     0,
 		PkgLen2:     0,
@@ -83,8 +97,6 @@ func do[T Codec](c *Client, conn *ConnRuntime, api T) error {
 	if err != nil {
 		return err
 	}
-	reqHeader.PkgLen1 = 2 + uint16(len(reqData))
-	reqHeader.PkgLen2 = 2 + uint16(len(reqData))
 
 	if api.NeedEncrypt(c.ctx) {
 		reqData, err = c.codec.Encode(reqData)
@@ -92,6 +104,9 @@ func do[T Codec](c *Client, conn *ConnRuntime, api T) error {
 			return err
 		}
 	}
+
+	reqHeader.PkgLen1 = 2 + uint16(len(reqData))
+	reqHeader.PkgLen2 = 2 + uint16(len(reqData))
 
 	// send req
 	reqBuf := bytes.NewBuffer(nil)
@@ -115,7 +130,7 @@ func do[T Codec](c *Client, conn *ConnRuntime, api T) error {
 	respPkg := <-callback
 
 	if c.opt.Debug && api.IsDebug(c.ctx) {
-		c.LogDebug("recv %s: %s", respPkg.header.Method, hex.EncodeToString(respPkg.body))
+		c.LogDebug("recv %s\n%s", respPkg.header.Method, hex.Dump(respPkg.body))
 	}
 
 	err = api.UnmarshalResp(c.ctx, respPkg.body)
@@ -127,6 +142,7 @@ func do[T Codec](c *Client, conn *ConnRuntime, api T) error {
 
 // public
 func (c *Client) Connect() error {
+	var err error
 	if c.dataConn != nil && c.dataConn.isConnected() {
 		return nil
 	}
@@ -135,11 +151,23 @@ func (c *Client) Connect() error {
 			heartbeatInterval: c.opt.HeartbeatInterval,
 			log:               c.LogDebug,
 			heartbeatFunc: func() error {
-				return c.Heartbeat()
+				// return c.Heartbeat()
+				return nil
 			},
 		})
 	}
-	return c.dataConn.connect(c.opt.TCPAddress)
+	err = c.dataConn.connect(c.opt.TCPAddress)
+	if err != nil {
+		return err
+	}
+
+	// FIXME: TDXHandshake cause error
+	// _, err = c.TDXHandshake()
+	// if err != nil {
+	// 	defer c.Disconnect()
+	// 	return err
+	// }
+	return nil
 }
 
 func (c *Client) NewMetaConnection() (*ConnRuntime, error) {
@@ -156,25 +184,15 @@ func (c *Client) NewMetaConnection() (*ConnRuntime, error) {
 }
 
 func (c *Client) Disconnect() error {
-	panic("implement me!")
-}
-
-func (c *Client) Handshake() error {
-	handshake := &Handshake{}
-	err := do(c, c.dataConn, handshake)
-	if err != nil {
-		return err
+	close(c.done)
+	if c.dataConn != nil && c.dataConn.isConnected() {
+		c.dataConn.resetConn()
 	}
 	return nil
 }
 
-func (c *Client) Heartbeat() error {
-	t0 := time.Now()
-	heartbeat := &Heartbeat{}
-	err := do(c, c.dataConn, heartbeat)
-	if err != nil {
-		return err
+func (c *Client) ResetDataConnSeqID(base uint16) {
+	if c.dataConn != nil {
+		c.dataConn.resetSeqID(base)
 	}
-	c.Log("heartbeat success, cost: %d ms", time.Since(t0).Milliseconds())
-	return nil
 }

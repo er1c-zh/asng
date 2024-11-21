@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
-	"math/rand/v2"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -50,7 +49,7 @@ func newConnRuntime(ctx context.Context, opt connRuntimeOpt) *ConnRuntime {
 	}
 
 	r.ctx = ctx
-	r.seqID = rand.Uint32()%100000 + 600000
+	r.seqID = 0
 	r.heartbeatTicker = time.NewTicker(opt.heartbeatInterval)
 	r.heartbeatFunc = opt.heartbeatFunc
 	if opt.log != nil {
@@ -121,7 +120,7 @@ func (r *ConnRuntime) sendHandler() {
 		}
 		r.log("send: %s %d", d.header.Method, d.header.SeqID)
 		r.muHandlerRedister.Lock()
-		r.handlerRegister[d.header.SeqID] = d
+		r.handlerRegister[uint32(d.header.SeqID)<<16+uint32(d.header.Type0)] = d
 		r.muHandlerRedister.Unlock()
 		n, err := r.conn.Write(d.body)
 		if err != nil {
@@ -134,7 +133,6 @@ func (r *ConnRuntime) sendHandler() {
 }
 
 func (r *ConnRuntime) recvHandler() {
-	// todo
 	r.log("read start.")
 	for {
 		var err error
@@ -176,13 +174,13 @@ func (r *ConnRuntime) recvHandler() {
 		}
 		// dispatch
 		r.muHandlerRedister.Lock()
-		reqPkg, ok := r.handlerRegister[header.SeqID]
+		reqPkg, ok := r.handlerRegister[uint32(header.SeqID)<<16+uint32(header.Type0)]
 		if !ok {
 			r.muHandlerRedister.Unlock()
 			r.log("handler not found: %s %d", header.Method, header.SeqID)
 			continue
 		}
-		delete(r.handlerRegister, header.SeqID)
+		delete(r.handlerRegister, uint32(header.SeqID)<<16+uint32(header.Type0))
 		r.muHandlerRedister.Unlock()
 		if reqPkg == nil || reqPkg.callback == nil {
 			r.log("callback is nil: %s %d", header.Method, header.SeqID)
@@ -204,8 +202,12 @@ func (r *ConnRuntime) resetConn() {
 	r.connected = false
 }
 
-func (r *ConnRuntime) genSeqID() uint32 {
-	return atomic.AddUint32(&r.seqID, 1)
+func (r *ConnRuntime) genSeqID() uint16 {
+	return uint16(atomic.AddUint32(&r.seqID, 1))
+}
+
+func (r *ConnRuntime) resetSeqID(base uint16) {
+	atomic.StoreUint32(&r.seqID, uint32(base))
 }
 
 func (r *ConnRuntime) isConnected() bool {

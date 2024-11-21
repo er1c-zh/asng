@@ -2,6 +2,7 @@ package proto
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -198,6 +199,24 @@ func ReadTDXTime(b []byte, pos *int, t CandleStickPeriodType) (year int, month i
 		return
 	}
 	return
+}
+
+func GenerateMACAddr() ([6]byte, error) {
+	buf := make([]byte, 6)
+	_, err := rand.Read(buf)
+	if err != nil {
+		return [6]byte{}, err
+	}
+	// 00-0A-EB set prefix
+	buf[0] = 0x00
+	buf[1] = 0x0A
+	buf[2] = 0xEB
+	return [6]byte{buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]}, nil
+}
+
+func FormatMACAddr(mac [6]byte) [12]byte {
+	d := []byte(hex.Dump(mac[:]))
+	return [12]byte{d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11]}
 }
 
 ///////////////////////////////////////////

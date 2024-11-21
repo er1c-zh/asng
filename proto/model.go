@@ -14,7 +14,8 @@ func (c ApiCode) String() string {
 
 type ReqHeader struct {
 	MagicNumber uint8  // MagicNumber
-	SeqID       uint32 // 请求编号
+	SeqID       uint16 // 请求编号
+	Type0       uint16 // 方法分类？
 	PacketType  uint8
 	PkgLen1     uint16
 	PkgLen2     uint16
@@ -24,10 +25,11 @@ type ReqHeader struct {
 type RespHeader struct {
 	I1     uint32
 	Flag   uint8
-	SeqID  uint32 // 请求编号
+	SeqID  uint16 // 请求编号
+	Type0  uint16
 	I3     uint8
 	Method ApiCode // method
-	// TODO 有时这个 PkgDataSize > RawDataSize
+	// 有时这个 PkgDataSize > RawDataSize 不根据这个判断是否是压缩处理过
 	PkgDataSize uint16 // 长度
 	RawDataSize uint16 // 未压缩长度
 }
@@ -66,10 +68,10 @@ func (c *BlankCodec) SetDebug(ctx context.Context) {
 }
 
 func (c *BlankCodec) NeedEncrypt(ctx context.Context) bool {
-	return false
+	return c.Encrypt
 }
 
-func (c *BlankCodec) SetNeedEncrypt(context.Context, string) {
+func (c *BlankCodec) SetNeedEncrypt(context.Context) {
 	c.Encrypt = true
 }
 

@@ -288,7 +288,7 @@ function CandleStickView(props: CandleStickViewProps) {
         <svg
           ref={svgRef}
           width={dimensions.width}
-          height={dimensions.height - 2}
+          height={Math.max(0, dimensions.height - 2)}
         >
           <g
             ref={xAxisRef}

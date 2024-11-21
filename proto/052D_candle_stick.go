@@ -12,6 +12,7 @@ func (c *Client) CandleStick(market models.MarketType, code string,
 	periodType CandleStickPeriodType, cursor uint16) (*CandleStickResp, error) {
 	var err error
 	candleStick := &CandleStick{}
+	candleStick.SetDebug(c.ctx)
 	candleStick.Req = &CandleStickReq{
 		MarketType: market,
 		Code:       [6]byte{code[0], code[1], code[2], code[3], code[4], code[5]},

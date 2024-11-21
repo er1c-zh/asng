@@ -6,6 +6,7 @@ import { EventsOn } from "../../wailsjs/runtime/runtime";
 function KeyMessage() {
   const [data, setData] = useState<proto.RealtimeRespItem[]>([]);
   const [meta, setMeta] = useState<{ [key: string]: models.StockMetaItem }>({});
+  const [refreshAt, setRefreshAt] = useState(new Date());
   const indexList = ["999999", "399001", "399006", "880863"];
 
   useEffect(() => {
@@ -23,6 +24,7 @@ function KeyMessage() {
           return;
         }
         setData(data);
+        setRefreshAt(new Date());
       }
     );
     StockMeta(indexList).then((d) => {
@@ -39,7 +41,11 @@ function KeyMessage() {
   });
   return (
     <div className="flex flex-row h-full overflow-hidden text-sm">
-      {data.map((d) => (
+      <div className="flex flex-col h-full px-1">
+        <div className="flex my-auto">更新于</div>
+        <div className="flex my-auto">{refreshAt.toLocaleTimeString()}</div>
+      </div>
+      {data?.map((d) => (
         <div
           key={d.Code}
           className={`flex flex-row space-x-1 h-full px-1 ${

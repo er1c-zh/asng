@@ -31,9 +31,9 @@ type HandshakeReq struct {
 	Flag4      uint8    // 0x80 0x1 from param
 	Flag5      [2]uint8 // 0x81 0x0101
 	Padding2   [48]byte // 0x83 padding
-	SomeKey    [12]byte // 0xB3 000C29F019C2
+	MacAddr    [12]byte // 0xB3 000C29F019C2  // mac address
 	Padding3   [87]byte // 0xBE padding
-	Flag6      uint32   // 0x116 0x000056C2
+	Rand       uint32   // 0x116 0x000056C2 // rand
 }
 
 func (c *Client) TDXHandshake() (string, error) {
@@ -49,10 +49,11 @@ func (c *Client) TDXHandshake() (string, error) {
 	handshake.Req.MinVersion = [4]byte{0xAE, 0x47, 0xC1, 0x40}
 	handshake.Req.Flag4 = 0x1
 	handshake.Req.Flag5 = [2]uint8{0x1, 0x1}
-	handshake.Req.SomeKey = [12]byte{'0', '0', '0', 'C', '2', '9', 'F', '0', '1', '9', 'C', '2'}
-	handshake.Req.Flag6 = 0x000056C2
+	handshake.Req.MacAddr = FormatMACAddr(c.macAddr)
+	handshake.Req.Rand = c.handShakeSeed
 
 	handshake.SetDebug(c.ctx)
+	handshake.SetNeedEncrypt(c.ctx)
 
 	err := do(c, c.dataConn, handshake)
 	if err != nil {
@@ -62,6 +63,7 @@ func (c *Client) TDXHandshake() (string, error) {
 }
 
 func (h *Handshake) FillReqHeader(ctx context.Context, header *ReqHeader) error {
+	header.Type0 = 0x007B
 	header.Method = 0x000B
 	header.PacketType = 1
 	return nil

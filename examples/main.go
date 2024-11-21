@@ -16,10 +16,10 @@ func main() {
 	// testDownloadFile()
 	// test0547()
 	// testServerInfo()
-	test052D()
+	test000D()
 }
 
-func test052D() {
+func test000D() {
 	var err error
 	cli := proto.NewClient(context.Background(), proto.DefaultOption.
 		WithDebugMode().
@@ -35,15 +35,50 @@ func test052D() {
 	}
 	fmt.Printf("connected\n")
 
-	// cli.Heartbeat()
-
-	resp, err := cli.CandleStick(models.MarketSH, "600000", proto.CandleStickPeriodType_Day, 0)
+	cli.ResetDataConnSeqID(0x1800)
+	_, err = cli.TDXHandshake()
 	if err != nil {
 		fmt.Printf("error:%s", err)
 		return
 	}
-	j, _ := json.MarshalIndent(resp, "", "  ")
-	fmt.Printf("%s\n", j)
+
+	err = cli.Nop(0x000d, 0x0094, "01")
+	if err != nil {
+		fmt.Printf("error:%s", err)
+		return
+	}
+
+	err = cli.Nop(0x0fdb, 0x0099, "7464786c6576656c000000b81ef540070000000000000000000000000005")
+	if err != nil {
+		fmt.Printf("error:%s", err)
+		return
+	}
+
+	err = cli.Nop(0x0002, 0x0095, "")
+	if err != nil {
+		fmt.Printf("error:%s", err)
+		return
+	}
+
+	err = cli.Nop(0x000a, 0x0093, "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		fmt.Printf("error:%s", err)
+		return
+	}
+
+	err = cli.Nop(0x0fde, 0x0071, "")
+	if err != nil {
+		fmt.Printf("error:%s", err)
+		return
+	}
+
+	cli.ResetDataConnSeqID(0x0000)
+	resp, err := cli.Realtime([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "999999"}})
+	if err != nil {
+		fmt.Printf("error:%s", err)
+		return
+	}
+	fmt.Printf("%v\n", (resp.ItemList))
 }
 
 func test0547() {

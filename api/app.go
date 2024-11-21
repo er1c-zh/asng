@@ -101,8 +101,14 @@ func (a *App) asyncInit() {
 				a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("connect client failed: %s", err.Error())})
 				return
 			}
+			serverInfo, err := a.cli.ServerInfo()
+			if err != nil {
+				a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("get server info failed: %s", err.Error())})
+				return
+			}
 			a.updateServerStatus(func(ss *models.ServerStatus) {
 				ss.Connected = true
+				ss.ServerInfo = serverInfo.Resp.Name
 			})
 		}
 

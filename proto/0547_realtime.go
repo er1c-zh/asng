@@ -153,6 +153,7 @@ func (obj *RealtimeRespItem) Unmarshal(ctx context.Context, buf []byte, cursor *
 
 func (obj *Realtime) FillReqHeader(ctx context.Context, header *ReqHeader) error {
 	header.Method = 0x0547
+	header.Type0 = 0x002A
 	return nil
 }
 
