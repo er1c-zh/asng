@@ -96,9 +96,9 @@ function CandleStickView(props: CandleStickViewProps) {
     }
     CandleStick(props.code, props.period, cursor).then((d) => {
       // setCursor(d.Cursor);
-      let preFive = [];
-      let preTen = [];
-      let preTwentyFive = [];
+      let preFive: number[] = [];
+      let preTen: number[] = [];
+      let preTwentyFive: number[] = [];
       setData(
         d.ItemList.map((d) => {
           preFive.push(d.Close);
@@ -230,7 +230,11 @@ function CandleStickView(props: CandleStickViewProps) {
     gSelector
       .append("line")
       .attr("y1", (d) => yScale(d.Open))
-      .attr("y2", (d) => yScale(d.Close))
+      .attr("y2", (d) =>
+        Math.abs(d.Open - d.Close) < 0.01
+          ? yScale(d.Close) + 1
+          : yScale(d.Close)
+      )
       .attr("stroke-width", xScale.bandwidth())
       .attr("stroke", (d) => (d.Close > d.Open ? "red" : "green"));
     gSelector
@@ -238,6 +242,7 @@ function CandleStickView(props: CandleStickViewProps) {
       .attr("y1", (d) => yScale(d.High))
       .attr("y2", (d) => yScale(d.Low))
       .attr("stroke", (d) => (d.Close > d.Open ? "red" : "green"));
+
     // avg line
     const avgLine5 = d3
       .line<CandleStickItem>()
