@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { EventsOn } from "../../wailsjs/runtime/runtime";
+import { EventsOn, LogInfo } from "../../wailsjs/runtime/runtime";
 import { api, models } from "../../wailsjs/go/models";
 import { ServerStatus } from "../../wailsjs/go/api/App";
+import KeyMessage from "./KeyMessage";
 
 type StatusBarProps = {
-  Components: React.ComponentType<any>[];
+  appState: number;
 };
 function StatusBar(props: StatusBarProps) {
   const [time, setTime] = useState("");
@@ -45,11 +46,7 @@ function StatusBar(props: StatusBarProps) {
             : "Disconnected"}
         </div>
       </div>
-      <div>
-        {props.Components.map((C: React.ComponentType<any>, i) => {
-          return <C key={i} />;
-        })}
-      </div>
+      <div>{props.appState > 0 ? <KeyMessage /> : null}</div>
     </div>
   );
 }

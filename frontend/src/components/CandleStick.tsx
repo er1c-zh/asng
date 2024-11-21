@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { proto } from "../../wailsjs/go/models";
 import { CandleStick } from "../../wailsjs/go/api/App";
 import { LogInfo } from "../../wailsjs/runtime/runtime";
@@ -41,44 +41,42 @@ function CandleStickView(props: CandleStickViewProps) {
     end: 0,
   });
 
-  const zoomEvent = (e: WheelEvent) => {
-    e.preventDefault();
-    let countOfStick = range.countOfStick;
-    let end = range.end;
-    if (Math.abs(e.deltaX / e.deltaY) > 1.5) {
-      end = Math.min(
-        Math.max(0, range.end - Math.floor(e.deltaX / 10)),
-        data ? data.length - countOfStick : 0
-      );
-    } else if (Math.abs(e.deltaY / e.deltaX) > 1.5) {
-      countOfStick = Math.max(
-        10,
-        range.countOfStick + Math.floor(e.deltaY / 10)
-      );
-    } else {
-      countOfStick = Math.max(
-        10,
-        range.countOfStick + Math.floor(e.deltaY / 10)
-      );
-      end = Math.min(
-        Math.max(0, range.end - Math.floor(e.deltaX / 10)),
-        data ? data.length - countOfStick : 0
-      );
-    }
-    setRange({ countOfStick, end });
-  };
+  const zoomEvent = useCallback(
+    (e: WheelEvent) => {
+      e.preventDefault();
+      let countOfStick = range.countOfStick;
+      let end = range.end;
+      if (Math.abs(e.deltaX / e.deltaY) > 1.5) {
+        end = Math.min(
+          Math.max(0, range.end - Math.floor(e.deltaX / 10)),
+          data ? data.length - countOfStick : 0
+        );
+      } else if (Math.abs(e.deltaY / e.deltaX) > 1.5) {
+        countOfStick = Math.max(
+          10,
+          range.countOfStick + Math.floor(e.deltaY / 10)
+        );
+      } else {
+        countOfStick = Math.max(
+          10,
+          range.countOfStick + Math.floor(e.deltaY / 10)
+        );
+        end = Math.min(
+          Math.max(0, range.end - Math.floor(e.deltaX / 10)),
+          data ? data.length - countOfStick : 0
+        );
+      }
+      setRange({ countOfStick, end });
+    },
+    [data, range]
+  );
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      const width = entry.contentRect.width;
-      const height = entry.contentRect.height;
-      if (
-        Math.abs(dimensions.width - width) > 0.02 ||
-        Math.abs(dimensions.height - height) > 0.02
-      ) {
-        setDimensions({ width, height });
-      }
+      setDimensions({
+        width: entries[0].contentRect.width,
+        height: entries[0].contentRect.height,
+      });
     });
     resizeObserver.observe(containerRef.current!);
 
@@ -88,7 +86,7 @@ function CandleStickView(props: CandleStickViewProps) {
       resizeObserver.disconnect();
       containerRef.current?.removeEventListener("wheel", zoomEvent);
     };
-  });
+  }, [zoomEvent]);
 
   useEffect(() => {
     if (props.code === "") {

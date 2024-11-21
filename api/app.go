@@ -108,7 +108,7 @@ func (a *App) asyncInit() {
 			}
 			a.updateServerStatus(func(ss *models.ServerStatus) {
 				ss.Connected = true
-				ss.ServerInfo = serverInfo.Resp.Name
+				ss.ServerInfo = serverInfo.Name
 			})
 		}
 

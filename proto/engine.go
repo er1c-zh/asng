@@ -48,6 +48,7 @@ func NewClient(ctx context.Context, opt Option) *Client {
 // private
 func (c *Client) init() error {
 	var err error
+	c.done = make(chan struct{})
 	c.codec, err = NewTDXCodec()
 	if err != nil {
 		return err
@@ -151,8 +152,7 @@ func (c *Client) Connect() error {
 			heartbeatInterval: c.opt.HeartbeatInterval,
 			log:               c.LogDebug,
 			heartbeatFunc: func() error {
-				// return c.Heartbeat()
-				return nil
+				return c.Heartbeat()
 			},
 		})
 	}
@@ -162,11 +162,11 @@ func (c *Client) Connect() error {
 	}
 
 	// FIXME: TDXHandshake cause error
-	// _, err = c.TDXHandshake()
-	// if err != nil {
-	// 	defer c.Disconnect()
-	// 	return err
-	// }
+	_, err = c.TDXHandshake()
+	if err != nil {
+		defer c.Disconnect()
+		return err
+	}
 	return nil
 }
 

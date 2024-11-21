@@ -15,7 +15,7 @@ func (c *Client) Heartbeat() error {
 	return nil
 }
 
-func (c *Client) ServerInfo() (*ServerInfo, error) {
+func (c *Client) ServerInfo() (*ServerInfoResp, error) {
 	var err error
 	s := ServerInfo{}
 	s.SetContentHex(c.ctx, "01")
@@ -23,13 +23,13 @@ func (c *Client) ServerInfo() (*ServerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &s, nil
+	return s.Resp, nil
 }
 
 type ServerInfo struct {
 	BlankCodec
 	StaticCodec
-	Resp ServerInfoResp
+	Resp *ServerInfoResp
 }
 
 type ServerInfoResp struct {
@@ -37,6 +37,7 @@ type ServerInfoResp struct {
 }
 
 func (s *ServerInfo) FillReqHeader(ctx context.Context, header *ReqHeader) error {
+	header.Type0 = 0x0094
 	header.Method = 0x000D
 	header.PacketType = 1
 	return nil
@@ -48,6 +49,7 @@ func (s *ServerInfo) MarshalReqBody(ctx context.Context) ([]byte, error) {
 
 func (s *ServerInfo) UnmarshalResp(ctx context.Context, data []byte) error {
 	var err error
+	s.Resp = &ServerInfoResp{}
 	cursor := 68
 	s.Resp.Name, err = ReadTDXString(data, &cursor, 80)
 	if err != nil {

@@ -1,12 +1,17 @@
 import { models } from "../../wailsjs/go/models";
 import "../App.css";
-import { useEffect, useRef, useState } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { CommandMatch } from "../../wailsjs/go/api/App";
 
 interface CommandPanelProps {
-  setIsShow: React.Dispatch<React.SetStateAction<boolean>>;
-  IsShow: boolean;
   setCode: React.Dispatch<React.SetStateAction<string>>;
+  setIsActive: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function CommandPanel(props: CommandPanelProps) {
@@ -14,39 +19,52 @@ function CommandPanel(props: CommandPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [candidators, setCandidators] = useState<models.StockMetaItem[]>([]);
   const [focusIndex, setFocusIndex] = useState(0);
-  const inputHandler = (e: KeyboardEvent) => {
-    if (props.IsShow && e.key === "Escape") {
-      e.preventDefault();
-      props.setIsShow(false);
-      setCmd("");
-      setFocusIndex(0);
-    } else if (!props.IsShow && /^[0-9a-zA-Z]+$/.test(e.key)) {
-      props.setIsShow(true);
-      setFocusIndex(0);
-    } else if (props.IsShow && e.key === "Enter") {
-      e.preventDefault();
-      props.setIsShow(false);
-      setCmd("");
-      if (candidators.length < focusIndex) {
+  const [isActive, setIsActive] = useState(false);
+
+  const inputHandler = useCallback(
+    (e: KeyboardEvent) => {
+      if (isActive && e.key === "Escape") {
+        e.preventDefault();
+        setIsActive(false);
+        props.setIsActive(false);
+        setCmd("");
         setFocusIndex(0);
-        return;
+      } else if (!isActive && /^[0-9a-zA-Z]+$/.test(e.key)) {
+        setIsActive(true);
+        props.setIsActive(true);
+        setFocusIndex(0);
+      } else if (isActive && e.key === "Enter") {
+        e.preventDefault();
+        setIsActive(false);
+        props.setIsActive(false);
+        setCmd("");
+        if (candidators.length < focusIndex) {
+          setFocusIndex(0);
+          return;
+        }
+        props.setCode(candidators[focusIndex].Code);
+        setFocusIndex(0);
+      } else if (isActive && e.key === "ArrowUp") {
+        e.preventDefault();
+        if (candidators.length === 0) {
+          return;
+        }
+        setFocusIndex((focusIndex - 1) % candidators.length);
+      } else if (isActive && (e.key === "ArrowDown" || e.key === "Tab")) {
+        e.preventDefault();
+        if (candidators.length === 0) {
+          return;
+        }
+        setFocusIndex((focusIndex + 1) % candidators.length);
       }
-      props.setCode(candidators[focusIndex].Code);
-      setFocusIndex(0);
-    } else if (props.IsShow && e.key === "ArrowUp") {
-      e.preventDefault();
-      if (candidators.length === 0) {
-        return;
+
+      if (e.key === "Escape") {
+        // FIXME hijack esc from system to avoid exit from full screen
+        e.preventDefault();
       }
-      setFocusIndex((focusIndex - 1) % candidators.length);
-    } else if (props.IsShow && (e.key === "ArrowDown" || e.key === "Tab")) {
-      e.preventDefault();
-      if (candidators.length === 0) {
-        return;
-      }
-      setFocusIndex((focusIndex + 1) % candidators.length);
-    }
-  };
+    },
+    [isActive, candidators, focusIndex]
+  );
   useEffect(() => {
     if (cmd.length === 0) {
       setCandidators([]);
@@ -57,14 +75,22 @@ function CommandPanel(props: CommandPanelProps) {
     }
   }, [cmd]);
   useEffect(() => {
-    inputRef.current?.focus();
     document.addEventListener("keydown", inputHandler);
     return () => {
       document.removeEventListener("keydown", inputHandler);
     };
+  }, [inputHandler]);
+  useEffect(() => {
+    inputRef.current?.focus();
   });
+
   return (
-    <div id="command-panel-root" className="flex">
+    <div
+      id="command-panel-root"
+      className={`fixed top-0 left-0 flex w-full h-full ${
+        isActive ? "" : "hidden"
+      }`}
+    >
       <div className="flex flex-col mx-auto w-1/3 min-w-64 bg-gray-600 mt-36 h-fit rounded border-gray-600 border-4">
         <input
           value={cmd}

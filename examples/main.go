@@ -35,44 +35,44 @@ func test000D() {
 	}
 	fmt.Printf("connected\n")
 
-	cli.ResetDataConnSeqID(0x1800)
 	_, err = cli.TDXHandshake()
 	if err != nil {
 		fmt.Printf("error:%s", err)
 		return
 	}
 
-	err = cli.Nop(0x000d, 0x0094, "01")
+	serverInfo, err := cli.ServerInfo()
 	if err != nil {
 		fmt.Printf("error:%s", err)
 		return
 	}
+	fmt.Printf("server name:%s\n", serverInfo.Name)
 
-	err = cli.Nop(0x0fdb, 0x0099, "7464786c6576656c000000b81ef540070000000000000000000000000005")
-	if err != nil {
-		fmt.Printf("error:%s", err)
-		return
-	}
+	// err = cli.Nop(0x0fdb, 0x0099, "7464786c6576656c000000b81ef540070000000000000000000000000005")
+	// if err != nil {
+	// 	fmt.Printf("error:%s", err)
+	// 	return
+	// }
 
-	err = cli.Nop(0x0002, 0x0095, "")
-	if err != nil {
-		fmt.Printf("error:%s", err)
-		return
-	}
+	// err = cli.Nop(0x0002, 0x0095, "")
+	// if err != nil {
+	// 	fmt.Printf("error:%s", err)
+	// 	return
+	// }
 
-	err = cli.Nop(0x000a, 0x0093, "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	if err != nil {
-		fmt.Printf("error:%s", err)
-		return
-	}
+	// err = cli.Nop(0x000a, 0x0093, "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	// if err != nil {
+	// 	fmt.Printf("error:%s", err)
+	// 	return
+	// }
 
-	err = cli.Nop(0x0fde, 0x0071, "")
-	if err != nil {
-		fmt.Printf("error:%s", err)
-		return
-	}
+	// err = cli.Nop(0x0fde, 0x0071, "")
+	// if err != nil {
+	// 	fmt.Printf("error:%s", err)
+	// 	return
+	// }
 
-	cli.ResetDataConnSeqID(0x0000)
+	// cli.ResetDataConnSeqID(0x0000)
 	resp, err := cli.Realtime([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "999999"}})
 	if err != nil {
 		fmt.Printf("error:%s", err)

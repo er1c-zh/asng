@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { proto } from "../../wailsjs/go/models";
 import CandleStickView from "./CandleStick";
+import { LogInfo } from "../../wailsjs/runtime/runtime";
 
 type ViewerProps = {
   Code: string;

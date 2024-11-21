@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { StockMeta, Subscribe, Unsubscribe } from "../../wailsjs/go/api/App";
 import { api, models, proto } from "../../wailsjs/go/models";
-import { EventsOn } from "../../wailsjs/runtime/runtime";
+import { EventsOn, LogInfo } from "../../wailsjs/runtime/runtime";
 
 function KeyMessage() {
   const [data, setData] = useState<proto.RealtimeRespItem[]>([]);
@@ -36,14 +36,22 @@ function KeyMessage() {
           Group: "KeyMessage",
         })
       );
-      //   cancel();
+      cancel();
     };
-  });
+  }, []);
   return (
-    <div className="flex flex-row h-full overflow-hidden text-sm">
+    <div
+      className={`flex flex-row h-full overflow-hidden text-sm ${
+        data.length > 0 ? "" : "animate-pulse"
+      }`}
+    >
       <div className="flex flex-col h-full px-1">
         <div className="flex my-auto">更新于</div>
-        <div className="flex my-auto">{refreshAt.toLocaleTimeString()}</div>
+        {data.length > 0 ? (
+          <div className="flex my-auto">{refreshAt.toLocaleTimeString()}</div>
+        ) : (
+          <div className="flex my-auto">loading...</div>
+        )}
       </div>
       {data?.map((d) => (
         <div
