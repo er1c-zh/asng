@@ -6,16 +6,16 @@ import (
 	"encoding/binary"
 )
 
-func (c *Client) Realtime(stock []StockQuery) (*RealtimeResp, error) {
-	realtime := &Realtime{}
+func (c *Client) RealtimeInfo(stock []StockQuery) (*RealtimeInfoResp, error) {
+	realtime := &RealtimeInfo{}
 
 	realtime.SetDebug(c.ctx)
 
-	realtime.Req = &RealtimeReq{
+	realtime.Req = &RealtimeInfoReq{
 		Size: uint16(len(stock)),
 	}
 	for _, s := range stock {
-		realtime.Req.ItemList = append(realtime.Req.ItemList, RealtimeReqItem{
+		realtime.Req.ItemList = append(realtime.Req.ItemList, RealtimeInfoReqItem{
 			Market: s.Market,
 			Code:   [10]byte{s.Code[0], s.Code[1], s.Code[2], s.Code[3], s.Code[4], s.Code[5]},
 		})
@@ -29,28 +29,28 @@ func (c *Client) Realtime(stock []StockQuery) (*RealtimeResp, error) {
 	return realtime.Resp, nil
 }
 
-type Realtime struct {
+type RealtimeInfo struct {
 	BlankCodec
-	Req  *RealtimeReq
-	Resp *RealtimeResp
+	Req  *RealtimeInfoReq
+	Resp *RealtimeInfoResp
 }
 
-type RealtimeReq struct {
+type RealtimeInfoReq struct {
 	Size     uint16
-	ItemList []RealtimeReqItem
+	ItemList []RealtimeInfoReqItem
 }
 
-type RealtimeReqItem struct {
+type RealtimeInfoReqItem struct {
 	Market uint8
 	Code   [10]byte
 }
 
-type RealtimeResp struct {
+type RealtimeInfoResp struct {
 	Data     []byte
 	Count    uint16
-	ItemList []RealtimeRespItem
+	ItemList []RealtimeInfoRespItem
 }
-type RealtimeRespItem struct {
+type RealtimeInfoRespItem struct {
 	Market              uint8
 	Code                string
 	CurrentPrice        int64
@@ -63,7 +63,7 @@ type RealtimeRespItem struct {
 	TotalAmount         float64
 }
 
-func (obj *RealtimeRespItem) Unmarshal(ctx context.Context, buf []byte, cursor *int) error {
+func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, cursor *int) error {
 	var err error
 	obj.Market, err = ReadInt(buf, cursor, obj.Market)
 	if err != nil {
@@ -151,13 +151,13 @@ func (obj *RealtimeRespItem) Unmarshal(ctx context.Context, buf []byte, cursor *
 	return nil
 }
 
-func (obj *Realtime) FillReqHeader(ctx context.Context, header *ReqHeader) error {
+func (obj *RealtimeInfo) FillReqHeader(ctx context.Context, header *ReqHeader) error {
 	header.Method = 0x0547
 	header.Type0 = 0x002A
 	return nil
 }
 
-func (obj *Realtime) MarshalReqBody(ctx context.Context) ([]byte, error) {
+func (obj *RealtimeInfo) MarshalReqBody(ctx context.Context) ([]byte, error) {
 	var err error
 	buf := bytes.NewBuffer(nil)
 	err = binary.Write(buf, binary.LittleEndian, obj.Req.Size)
@@ -173,9 +173,9 @@ func (obj *Realtime) MarshalReqBody(ctx context.Context) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (obj *Realtime) UnmarshalResp(ctx context.Context, data []byte) error {
+func (obj *RealtimeInfo) UnmarshalResp(ctx context.Context, data []byte) error {
 	data = decryptSimpleXOR(data, keySimpleXOR0547)
-	obj.Resp = &RealtimeResp{
+	obj.Resp = &RealtimeInfoResp{
 		Data: data,
 	}
 	var err error
@@ -186,7 +186,7 @@ func (obj *Realtime) UnmarshalResp(ctx context.Context, data []byte) error {
 	}
 
 	for i := 0; i < int(obj.Resp.Count); i += 1 {
-		item := RealtimeRespItem{}
+		item := RealtimeInfoRespItem{}
 		err = item.Unmarshal(ctx, data, &cursor)
 		if err != nil {
 			return err

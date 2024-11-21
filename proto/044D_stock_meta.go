@@ -175,7 +175,11 @@ func (obj *StockMeta) UnmarshalResp(ctx context.Context, data []byte) error {
 		if err != nil {
 			return err
 		}
+
 		_, err = ReadByteArray(data, &cursor, c0+37 /* item data length */ -cursor)
+		if err != nil {
+			return err
+		}
 
 		obj.Resp.List = append(obj.Resp.List, item)
 	}

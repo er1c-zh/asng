@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -16,7 +15,7 @@ func main() {
 	// testDownloadFile()
 	// test0547()
 	// testServerInfo()
-	test000D()
+	test0537()
 }
 
 func test000D() {
@@ -73,7 +72,7 @@ func test000D() {
 	// }
 
 	// cli.ResetDataConnSeqID(0x0000)
-	resp, err := cli.Realtime([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "999999"}})
+	resp, err := cli.RealtimeInfo([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "999999"}})
 	if err != nil {
 		fmt.Printf("error:%s", err)
 		return
@@ -81,7 +80,7 @@ func test000D() {
 	fmt.Printf("%v\n", (resp.ItemList))
 }
 
-func test0547() {
+func test0537() {
 	var err error
 	cli := proto.NewClient(context.Background(), proto.DefaultOption.
 		WithDebugMode().
@@ -97,14 +96,12 @@ func test0547() {
 	}
 	fmt.Printf("connected\n")
 
-	// cli.Heartbeat()
-
-	resp, err := cli.Realtime([]proto.StockQuery{})
+	resp, err := cli.Subscribe(models.MarketSZ, "300059")
 	if err != nil {
 		fmt.Printf("error:%s", err)
 		return
 	}
-	fmt.Printf("%s\n", hex.Dump(resp.Data))
+
 	j, _ := json.MarshalIndent(resp, "", "  ")
-	fmt.Printf("%s\n", j)
+	fmt.Printf("%s\n", string(j))
 }

@@ -166,7 +166,7 @@ func (a *App) updateServerStatus(f func(*models.ServerStatus)) {
 
 type ExportStruct struct {
 	F0 models.ServerStatus
-	F1 []proto.RealtimeRespItem
+	F1 []proto.RealtimeInfoRespItem
 }
 
 func (a *App) MakeWailsHappy() ExportStruct {

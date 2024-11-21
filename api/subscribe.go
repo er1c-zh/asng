@@ -90,7 +90,7 @@ func (a *QuoteSubscripition) worker() {
 						proto.StockQuery{Market: uint8(a.app.stockMetaMap[code].Market), Code: code})
 				}
 				go func(req []proto.StockQuery, group string) {
-					resp, err := a.cli.Realtime(req)
+					resp, err := a.cli.RealtimeInfo(req)
 					if err != nil {
 						a.app.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("realtime subscribe failed: %s", err.Error())})
 						return
@@ -112,7 +112,7 @@ func (a *QuoteSubscripition) worker() {
 						proto.StockQuery{Market: uint8(a.app.stockMetaMap[code].Market), Code: code})
 				}
 				go func(req []proto.StockQuery, group string) {
-					resp, err := a.cli.Realtime(req)
+					resp, err := a.cli.RealtimeInfo(req)
 					if err != nil {
 						a.app.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("realtime subscribe failed: %s", err.Error())})
 						return
