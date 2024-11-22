@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand/v2"
+	"time"
 )
 
 type Client struct {
@@ -23,16 +24,6 @@ type Client struct {
 	// TDX seed
 	handShakeSeed uint32
 	macAddr       [6]byte
-}
-
-type reqPkg struct {
-	body     []byte
-	header   ReqHeader
-	callback chan *respPkg
-}
-type respPkg struct {
-	header RespHeader
-	body   []byte
 }
 
 func NewClient(ctx context.Context, opt Option) *Client {
@@ -79,21 +70,33 @@ func do[T Codec](c *Client, conn *ConnRuntime, api T) error {
 	if conn == nil {
 		return fmt.Errorf("conn is nil or not connected")
 	}
-	c.LogDebug("start do")
+
+	t0 := time.Now()
 	var err error
 	reqHeader := ReqHeader{
 		MagicNumber: 0x0C,
-		SeqID:       conn.genSeqID(),
-		Type0:       0,
-		PacketType:  0x01,
-		PkgLen1:     0,
-		PkgLen2:     0,
-		Method:      0,
+		HeaderIdentifer: HeaderIdentifer{
+			SeqID: 0,
+			Group: 0,
+			Type0: 0,
+		},
+		PacketType: 0x01,
+		PkgLen1:    0,
+		PkgLen2:    0,
+		Method:     0,
 	}
+
+	defer func() {
+		c.LogDebug("do %s with err: %v, cost: %d ms", reqHeader.Method.String(), err, time.Since(t0).Milliseconds())
+	}()
+
 	err = api.FillReqHeader(c.ctx, &reqHeader)
 	if err != nil {
 		return err
 	}
+
+	reqHeader.SeqID = conn.genSeqID(reqHeader.Group)
+
 	reqData, err := api.MarshalReqBody(c.ctx)
 	if err != nil {
 		return err
@@ -121,8 +124,7 @@ func do[T Codec](c *Client, conn *ConnRuntime, api T) error {
 	}
 
 	if c.opt.Debug && api.IsDebug(c.ctx) {
-		c.LogDebug("send %s", reqHeader.Method)
-		c.LogDebug("%s", hex.Dump(reqBuf.Bytes()))
+		c.LogDebug("send %s\n%s", reqHeader.Method, hex.Dump(reqBuf.Bytes()))
 	}
 
 	callback := make(chan *respPkg)
@@ -189,10 +191,4 @@ func (c *Client) Disconnect() error {
 		c.dataConn.resetConn()
 	}
 	return nil
-}
-
-func (c *Client) ResetDataConnSeqID(base uint16) {
-	if c.dataConn != nil {
-		c.dataConn.resetSeqID(base)
-	}
 }

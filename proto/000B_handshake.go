@@ -64,6 +64,7 @@ func (c *Client) TDXHandshake() (string, error) {
 
 func (h *Handshake) FillReqHeader(ctx context.Context, header *ReqHeader) error {
 	header.Type0 = 0x007B
+	header.Group = 0x18
 	header.Method = 0x000B
 	header.PacketType = 1
 	return nil

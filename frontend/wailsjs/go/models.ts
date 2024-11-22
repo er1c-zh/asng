@@ -8,7 +8,7 @@ export namespace api {
 	}
 	export class ExportStruct {
 	    F0: models.ServerStatus;
-	    F1: proto.RealtimeRespItem[];
+	    F1: proto.RealtimeInfoRespItem[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ExportStruct(source);
@@ -17,7 +17,7 @@ export namespace api {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.F0 = this.convertValues(source["F0"], models.ServerStatus);
-	        this.F1 = this.convertValues(source["F1"], proto.RealtimeRespItem);
+	        this.F1 = this.convertValues(source["F1"], proto.RealtimeInfoRespItem);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -183,7 +183,7 @@ export namespace proto {
 		    return a;
 		}
 	}
-	export class RealtimeRespItem {
+	export class RealtimeInfoRespItem {
 	    Market: number;
 	    Code: string;
 	    CurrentPrice: number;
@@ -196,7 +196,7 @@ export namespace proto {
 	    TotalAmount: number;
 	
 	    static createFrom(source: any = {}) {
-	        return new RealtimeRespItem(source);
+	        return new RealtimeInfoRespItem(source);
 	    }
 	
 	    constructor(source: any = {}) {

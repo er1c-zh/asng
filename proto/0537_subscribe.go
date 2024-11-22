@@ -15,7 +15,7 @@ func (c *Client) Subscribe(market models.MarketType, code string) (*SubscribeRes
 	subject.Req = &SubscribeReq{
 		Market: market,
 		Code:   [6]byte{code[0], code[1], code[2], code[3], code[4], code[5]},
-		R1:     [4]uint8{0x00, 0x00, 0x00, 0x01},
+		R1:     [4]uint8{0x00, 0x00, 0x00, uint8(c.handShakeSeed)},
 	}
 
 	err := do(c, c.dataConn, subject)

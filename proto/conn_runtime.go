@@ -19,20 +19,36 @@ const (
 type ConnRuntime struct {
 	ctx context.Context
 
-	seqID uint32
+	seqIDList [0xFF]uint32
 
 	heartbeatTicker *time.Ticker
 	heartbeatFunc   func() error
 
 	log func(format string, args ...any)
 
-	done              chan struct{}
-	muConn            sync.Mutex
-	conn              net.Conn
-	connected         bool
-	sendCh            chan *reqPkg
-	muHandlerRedister sync.Mutex
-	handlerRegister   map[uint32]*reqPkg
+	done               chan struct{}
+	muConn             sync.Mutex
+	conn               net.Conn
+	connected          bool
+	sendCh             chan *reqPkg
+	muHandlerRedister  sync.Mutex
+	oneTimeHandler     map[string]*reqPkg
+	persistanceHandler map[uint16]*respHandler
+}
+
+type reqPkg struct {
+	body     []byte
+	header   ReqHeader
+	callback chan *respPkg
+}
+
+type respPkg struct {
+	header RespHeader
+	body   []byte
+}
+
+type respHandler struct {
+	callback chan *respPkg
 }
 
 type connRuntimeOpt struct {
@@ -49,7 +65,7 @@ func newConnRuntime(ctx context.Context, opt connRuntimeOpt) *ConnRuntime {
 	}
 
 	r.ctx = ctx
-	r.seqID = 0
+	r.seqIDList = [0xFF]uint32{0}
 	r.heartbeatTicker = time.NewTicker(opt.heartbeatInterval)
 	r.heartbeatFunc = opt.heartbeatFunc
 	if opt.log != nil {
@@ -58,7 +74,8 @@ func newConnRuntime(ctx context.Context, opt connRuntimeOpt) *ConnRuntime {
 	r.done = make(chan struct{})
 	r.connected = false
 	r.sendCh = make(chan *reqPkg)
-	r.handlerRegister = make(map[uint32]*reqPkg)
+	r.oneTimeHandler = make(map[string]*reqPkg)
+	r.persistanceHandler = make(map[uint16]*respHandler)
 
 	go r.heartbeatTrigger()
 
@@ -66,9 +83,13 @@ func newConnRuntime(ctx context.Context, opt connRuntimeOpt) *ConnRuntime {
 }
 
 func (r *ConnRuntime) heartbeatTrigger() {
-	// TODO recover panic
+	defer func() {
+		if err := recover(); err != nil {
+			r.log("panic: %v", err)
+			close(r.done)
+		}
+	}()
 	for {
-		r.log("heartbeat ticker, seqID: %d", r.seqID)
 		select {
 		case <-r.heartbeatTicker.C:
 			r.log("heartbeat %t", r.connected)
@@ -111,6 +132,16 @@ func (r *ConnRuntime) connect(addr string) error {
 	return nil
 }
 
+func (r *ConnRuntime) RegisterHandler(respType uint16, callbackChan chan *respPkg) {
+	r.muHandlerRedister.Lock()
+	defer r.muHandlerRedister.Unlock()
+	old, ok := r.persistanceHandler[respType]
+	if ok {
+		close(old.callback)
+	}
+	r.persistanceHandler[respType] = &respHandler{callback: callbackChan}
+}
+
 func (r *ConnRuntime) sendHandler() {
 	r.log("send handler start")
 	for {
@@ -120,7 +151,7 @@ func (r *ConnRuntime) sendHandler() {
 		}
 		r.log("send: %s %d", d.header.Method, d.header.SeqID)
 		r.muHandlerRedister.Lock()
-		r.handlerRegister[uint32(d.header.SeqID)<<16+uint32(d.header.Type0)] = d
+		r.oneTimeHandler[d.header.UniqKey()] = d
 		r.muHandlerRedister.Unlock()
 		n, err := r.conn.Write(d.body)
 		if err != nil {
@@ -174,20 +205,20 @@ func (r *ConnRuntime) recvHandler() {
 		}
 		// dispatch
 		r.muHandlerRedister.Lock()
-		reqPkg, ok := r.handlerRegister[uint32(header.SeqID)<<16+uint32(header.Type0)]
-		if !ok {
-			r.muHandlerRedister.Unlock()
+		var callbackChan chan *respPkg
+		if h, ok := r.oneTimeHandler[header.UniqKey()]; ok {
+			callbackChan = h.callback
+			delete(r.oneTimeHandler, header.UniqKey())
+		} else if h, ok := r.persistanceHandler[header.Type0]; ok {
+			callbackChan = h.callback
+		} else {
 			r.log("handler not found: %s %d", header.Method, header.SeqID)
-			continue
 		}
-		delete(r.handlerRegister, uint32(header.SeqID)<<16+uint32(header.Type0))
 		r.muHandlerRedister.Unlock()
-		if reqPkg == nil || reqPkg.callback == nil {
-			r.log("callback is nil: %s %d", header.Method, header.SeqID)
-			continue
+		if callbackChan != nil {
+			r.log("call callback: %s %d", header.Method, header.SeqID)
+			callbackChan <- &respPkg{header: header, body: body}
 		}
-		r.log("call callback: %s %d", header.Method, header.SeqID)
-		reqPkg.callback <- &respPkg{header: header, body: body}
 	}
 	r.resetConn()
 }
@@ -202,12 +233,8 @@ func (r *ConnRuntime) resetConn() {
 	r.connected = false
 }
 
-func (r *ConnRuntime) genSeqID() uint16 {
-	return uint16(atomic.AddUint32(&r.seqID, 1))
-}
-
-func (r *ConnRuntime) resetSeqID(base uint16) {
-	atomic.StoreUint32(&r.seqID, uint32(base))
+func (r *ConnRuntime) genSeqID(group uint8) uint8 {
+	return uint8(atomic.AddUint32(&r.seqIDList[group], 1))
 }
 
 func (r *ConnRuntime) isConnected() bool {

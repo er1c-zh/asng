@@ -4,10 +4,10 @@ import { api, models, proto } from "../../wailsjs/go/models";
 import { EventsOn, LogInfo } from "../../wailsjs/runtime/runtime";
 
 function KeyMessage() {
-  const [data, setData] = useState<proto.RealtimeRespItem[]>([]);
+  const [data, setData] = useState<proto.RealtimeInfoRespItem[]>([]);
   const [meta, setMeta] = useState<{ [key: string]: models.StockMetaItem }>({});
   const [refreshAt, setRefreshAt] = useState(new Date());
-  const indexList = ["999999", "399001", "399006", "880863"];
+  const indexList = ["999999", "399001", "399006", "880863", "880774"];
 
   useEffect(() => {
     Subscribe(
@@ -19,7 +19,7 @@ function KeyMessage() {
     );
     const cancel = EventsOn(
       api.MsgKey.subscribeBroadcast,
-      (group: string, data: proto.RealtimeRespItem[]) => {
+      (group: string, data: proto.RealtimeInfoRespItem[]) => {
         if (group !== "KeyMessage") {
           return;
         }

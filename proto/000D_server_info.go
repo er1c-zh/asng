@@ -2,18 +2,7 @@ package proto
 
 import (
 	"context"
-	"time"
 )
-
-func (c *Client) Heartbeat() error {
-	t0 := time.Now()
-	_, err := c.ServerInfo()
-	if err != nil {
-		return err
-	}
-	c.Log("heartbeat success, cost: %d ms", time.Since(t0).Milliseconds())
-	return nil
-}
 
 func (c *Client) ServerInfo() (*ServerInfoResp, error) {
 	var err error

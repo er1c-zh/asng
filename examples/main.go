@@ -15,7 +15,8 @@ func main() {
 	// testDownloadFile()
 	// test0547()
 	// testServerInfo()
-	test0537()
+	// test0537()
+	test000D()
 }
 
 func test000D() {
@@ -40,6 +41,11 @@ func test000D() {
 		return
 	}
 
+	err = cli.Heartbeat()
+	if err != nil {
+		fmt.Printf("error:%s", err)
+		return
+	}
 	serverInfo, err := cli.ServerInfo()
 	if err != nil {
 		fmt.Printf("error:%s", err)
@@ -72,12 +78,12 @@ func test000D() {
 	// }
 
 	// cli.ResetDataConnSeqID(0x0000)
-	resp, err := cli.RealtimeInfo([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "999999"}})
-	if err != nil {
-		fmt.Printf("error:%s", err)
-		return
-	}
-	fmt.Printf("%v\n", (resp.ItemList))
+	// Resp, err := cli.RealtimeInfo([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "999999"}})
+	// If err != nil {
+	// 	fmt.Printf("error:%s", err)
+	// 	return
+	// }
+	// Fmt.Printf("%v\n", (resp.ItemList))
 }
 
 func test0537() {
