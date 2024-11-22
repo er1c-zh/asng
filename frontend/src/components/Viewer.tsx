@@ -1,7 +1,6 @@
-import { useEffect } from "react";
 import { proto } from "../../wailsjs/go/models";
 import CandleStickView from "./CandleStick";
-import { LogInfo } from "../../wailsjs/runtime/runtime";
+import RealtimeGraph from "./RealtimeGraph";
 
 type ViewerProps = {
   Code: string;
@@ -21,10 +20,7 @@ function Viewer(props: ViewerProps) {
             />
           </div>
           <div className="flex h-1/2 w-full">
-            <CandleStickView
-              code={props.Code}
-              period={proto.CandleStickPeriodType.CandleStickPeriodType1Day}
-            />
+            <RealtimeGraph code={props.Code} />
           </div>
         </div>
         <div className="flex flex-col h-full w-1/2">quote and tick</div>

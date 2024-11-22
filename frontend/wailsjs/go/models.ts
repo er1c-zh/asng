@@ -183,6 +183,22 @@ export namespace proto {
 		    return a;
 		}
 	}
+	export class QuoteFrame {
+	    Price: number;
+	    AvgPrice: number;
+	    Volume: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new QuoteFrame(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Price = source["Price"];
+	        this.AvgPrice = source["AvgPrice"];
+	        this.Volume = source["Volume"];
+	    }
+	}
 	export class RealtimeInfoRespItem {
 	    Market: number;
 	    Code: string;

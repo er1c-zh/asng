@@ -38,10 +38,10 @@ type SubscribeReq struct {
 }
 type SubscribeResp struct {
 	Count uint16
-	List  []SubscribeRespItem
+	List  []QuoteFrame
 }
 
-type SubscribeRespItem struct {
+type QuoteFrame struct {
 	Price    int64
 	AvgPrice int64
 	Volume   int64
@@ -76,7 +76,7 @@ func (obj *Subscribe) UnmarshalResp(ctx context.Context, data []byte) error {
 	base0, base1 := int64(0), int64(0)
 	cursor += 2
 	for i := 0; i < int(obj.Resp.Count); i += 1 {
-		item := SubscribeRespItem{}
+		item := QuoteFrame{}
 		item.Price, err = ReadTDXInt(data, &cursor)
 		if err != nil {
 			return err

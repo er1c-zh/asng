@@ -72,6 +72,14 @@ function CandleStickView(props: CandleStickViewProps) {
   );
 
   useEffect(() => {
+    containerRef.current?.addEventListener("wheel", zoomEvent);
+
+    return () => {
+      containerRef.current?.removeEventListener("wheel", zoomEvent);
+    };
+  }, [zoomEvent]);
+
+  useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
       setDimensions({
         width: entries[0].contentRect.width,
@@ -79,14 +87,10 @@ function CandleStickView(props: CandleStickViewProps) {
       });
     });
     resizeObserver.observe(containerRef.current!);
-
-    containerRef.current?.addEventListener("wheel", zoomEvent);
-
     return () => {
       resizeObserver.disconnect();
-      containerRef.current?.removeEventListener("wheel", zoomEvent);
     };
-  }, [zoomEvent]);
+  }, []);
 
   useEffect(() => {
     if (props.code === "") {

@@ -26,4 +26,6 @@ export function StockMeta(arg1:Array<string>):Promise<{[key: string]: models.Sto
 
 export function Subscribe(arg1:api.SubscribeReq):Promise<void>;
 
+export function TodayQuote(arg1:string):Promise<Array<proto.QuoteFrame>>;
+
 export function Unsubscribe(arg1:api.SubscribeReq):Promise<void>;

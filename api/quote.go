@@ -18,3 +18,16 @@ func (a *App) CandleStick(code string, period proto.CandleStickPeriodType, curso
 	}
 	return resp
 }
+
+func (a *App) TodayQuote(code string) []proto.QuoteFrame {
+	meta, ok := a.stockMetaMap[code]
+	if !ok {
+		return nil
+	}
+	resp, err := a.cli.Subscribe(meta.Market, code)
+	if err != nil {
+		a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("today quote failed: %s", err.Error())})
+		return nil
+	}
+	return resp.List
+}
