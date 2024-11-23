@@ -97,6 +97,10 @@ export namespace models {
 	    Code: string;
 	    Desc: string;
 	    PinYinInitial: string;
+	    F0: number;
+	    F1: number;
+	    F2: number;
+	    F3: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new StockMetaItem(source);
@@ -108,6 +112,10 @@ export namespace models {
 	        this.Code = source["Code"];
 	        this.Desc = source["Desc"];
 	        this.PinYinInitial = source["PinYinInitial"];
+	        this.F0 = source["F0"];
+	        this.F1 = source["F1"];
+	        this.F2 = source["F2"];
+	        this.F3 = source["F3"];
 	    }
 	}
 

@@ -45,6 +45,10 @@ func (c *Client) StockMetaAll() (*models.StockMetaAll, error) {
 					Market:        market,
 					Desc:          item.Desc,
 					PinYinInitial: getPinYinInitial(item.Desc),
+					F0:            item.F0,
+					F1:            item.F1,
+					F2:            item.F2,
+					F3:            item.F3,
 				})
 			}
 			cursor += uint32(len(resp.List))
@@ -98,6 +102,11 @@ type StockMetaItem struct {
 	Code  string
 	Scale uint16
 	Desc  string
+	F0    float64
+	F1    float64
+	F2    uint16
+	F3    uint16
+
 	// VolUnit      uint16
 	// Reserved1    uint32
 	// PreClose      float64
@@ -106,6 +115,7 @@ type StockMetaItem struct {
 
 func (StockMeta) FillReqHeader(ctx context.Context, header *ReqHeader) error {
 	header.MagicNumber = 0x0C
+	header.Type0 = 0x006E
 	header.PacketType = 1
 	header.Method = 0x044D
 	return nil
@@ -129,12 +139,12 @@ unsigned __int16 __cdecl parseSingle044Dsub_81CBE0(char *Src, char *a2)
 	  const char *TdxPYStr; // eax
 
 	  memset(a2, 0, 0x168u);
-	  memmove(a2, Src, 6u);
+	  memmove(a2, Src, 6u); // code
 	  a2[6] = 0;
-	  memmove(a2 + 31, Src + 8, 0x10u);
+	  memmove(a2 + 31, Src + 8, 0x10u); // gbk desc
 	  a2[47] = 0;
 	  v2 = a2[329] == 0;
-	  *(float *)(a2 + 0x4E) = (float)*((__int16 *)Src + 3);
+	  *(float *)(a2 + 0x4E) = (float)*((__int16 *)Src + 3); // scale
 	  a2[76] = Src[28];
 	  *(float *)(a2 + 90) = *((float *)Src + 6);
 	  *((float *)a2 + 69) = *(float *)(Src + 29);
@@ -161,8 +171,6 @@ func (obj *StockMeta) UnmarshalResp(ctx context.Context, data []byte) error {
 	for i := 0; i < int(obj.Resp.Count); i++ {
 		item := StockMetaItem{}
 
-		c0 := cursor
-
 		item.Code, err = ReadCode(data, &cursor)
 		if err != nil {
 			return err
@@ -176,7 +184,29 @@ func (obj *StockMeta) UnmarshalResp(ctx context.Context, data []byte) error {
 			return err
 		}
 
-		_, err = ReadByteArray(data, &cursor, c0+37 /* item data length */ -cursor)
+		// _, err = ReadByteArray(data, &cursor, c0+37 /* item data length */ -cursor)
+		// if err != nil {
+		// 	return err
+		// }
+
+		item.F0, err = ReadTDXFloat(data, &cursor)
+		if err != nil {
+			return err
+		}
+
+		cursor += 1 // FIXME: really padding
+
+		item.F1, err = ReadTDXFloat(data, &cursor)
+		if err != nil {
+			return err
+		}
+
+		item.F2, err = ReadInt(data, &cursor, item.F2)
+		if err != nil {
+			return err
+		}
+
+		item.F3, err = ReadInt(data, &cursor, item.F3)
 		if err != nil {
 			return err
 		}

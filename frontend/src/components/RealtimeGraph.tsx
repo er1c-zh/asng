@@ -80,9 +80,11 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
         d3
           .axisTop(xScale)
           .tickSize(dimensions.height - mt - mb)
-          .tickValues([
-            /* FIXME d3 bug? */ 0, 0, 30, 60, 90, 120, 150, 180, 210, 240,
-          ])
+          .tickValues(
+            [0 /* FIXME d3 bug? */].concat([
+              0, 30, 60, 90, 120, 150, 180, 210, 240,
+            ])
+          )
           .tickFormat((d) => {
             console.log(d.valueOf());
             console.log(
@@ -129,11 +131,15 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
           .tickSize(dimensions.width - ml - mr)
           .tickFormat(d3.format(".2f"))
           .tickValues(
-            Array.from({ length: 9 }, (_, i) => i).map(
-              (i) =>
-                yesterdayClose +
-                (i - 4) * ((yScale.domain()[1] - yesterdayClose) / 4)
-            )
+            yScale
+              .domain()
+              .concat(
+                Array.from({ length: 7 }, (_, i) => i).map(
+                  (i) =>
+                    yesterdayClose +
+                    (i - 3) * ((yScale.domain()[1] - yesterdayClose) / 4)
+                )
+              )
           )
       )
       .call((g) =>
@@ -144,6 +150,7 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
       )
       .call((g) => g.selectAll(".tick text").attr("x", -32).attr("dy", 2))
       .call((g) => g.select(".domain").remove());
+
     const lineZero = d3
       .line<Number>()
       .x((d, i) => xScale(i))
