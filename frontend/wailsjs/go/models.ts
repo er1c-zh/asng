@@ -97,9 +97,10 @@ export namespace models {
 	    Code: string;
 	    Desc: string;
 	    PinYinInitial: string;
+	    Scale: number;
 	    F0: number;
-	    F1: number;
-	    F2: number;
+	    YesterdayClose: number;
+	    BlockID: number;
 	    F3: number;
 	
 	    static createFrom(source: any = {}) {
@@ -112,9 +113,10 @@ export namespace models {
 	        this.Code = source["Code"];
 	        this.Desc = source["Desc"];
 	        this.PinYinInitial = source["PinYinInitial"];
+	        this.Scale = source["Scale"];
 	        this.F0 = source["F0"];
-	        this.F1 = source["F1"];
-	        this.F2 = source["F2"];
+	        this.YesterdayClose = source["YesterdayClose"];
+	        this.BlockID = source["BlockID"];
 	        this.F3 = source["F3"];
 	    }
 	}

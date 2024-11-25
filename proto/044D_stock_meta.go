@@ -41,14 +41,15 @@ func (c *Client) StockMetaAll() (*models.StockMetaAll, error) {
 			}
 			for _, item := range resp.List {
 				d.StockList = append(d.StockList, models.StockMetaItem{
-					Code:          item.Code,
-					Market:        market,
-					Desc:          item.Desc,
-					PinYinInitial: getPinYinInitial(item.Desc),
-					F0:            item.F0,
-					F1:            item.F1,
-					F2:            item.F2,
-					F3:            item.F3,
+					Code:           item.Code,
+					Market:         market,
+					Desc:           item.Desc,
+					PinYinInitial:  getPinYinInitial(item.Desc),
+					Scale:          item.Scale,
+					F0:             item.F0,
+					YesterdayClose: item.YesterdayClose,
+					BlockID:        item.BlockID,
+					F3:             item.F3,
 				})
 			}
 			cursor += uint32(len(resp.List))
@@ -99,18 +100,13 @@ type StockMetaResp struct {
 }
 
 type StockMetaItem struct {
-	Code  string
-	Scale uint16
-	Desc  string
-	F0    float64
-	F1    float64
-	F2    uint16
-	F3    uint16
-
-	// VolUnit      uint16
-	// Reserved1    uint32
-	// PreClose      float64
-	// Reserved2     uint32
+	Code           string
+	Scale          uint16
+	Desc           string
+	F0             float64
+	YesterdayClose float64
+	BlockID        uint16
+	F3             uint16
 }
 
 func (StockMeta) FillReqHeader(ctx context.Context, header *ReqHeader) error {
@@ -196,12 +192,12 @@ func (obj *StockMeta) UnmarshalResp(ctx context.Context, data []byte) error {
 
 		cursor += 1 // FIXME: really padding
 
-		item.F1, err = ReadTDXFloat(data, &cursor)
+		item.YesterdayClose, err = ReadTDXFloat(data, &cursor)
 		if err != nil {
 			return err
 		}
 
-		item.F2, err = ReadInt(data, &cursor, item.F2)
+		item.BlockID, err = ReadInt(data, &cursor, item.BlockID)
 		if err != nil {
 			return err
 		}

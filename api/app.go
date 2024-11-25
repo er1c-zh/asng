@@ -124,9 +124,15 @@ func (a *App) asyncInit() {
 		{
 			a.LogProcessInfo(models.ProcessInfo{Msg: "loading stock meta..."})
 			t0 := time.Now()
-			_, a.stockMeta, err = a.fm.LoadStockMeta()
+			var fileMeta *FileMeta
+			fileMeta, a.stockMeta, err = a.fm.LoadStockMeta()
 			if err != nil {
 				a.LogProcessWarn(models.ProcessInfo{Msg: fmt.Sprintf("read stock meta failed: %s", err.Error())})
+			}
+			if fileMeta != nil && time.Now().Format("20060102") != time.Unix(fileMeta.UpdatedAt, 0).Format("20060102") {
+				a.LogProcessInfo(models.ProcessInfo{Msg: "stock meta is outdated, loading from server..."})
+				a.stockMeta = nil
+				fileMeta = nil
 			}
 			if a.stockMeta == nil {
 				a.LogProcessInfo(models.ProcessInfo{Msg: "stock meta not found, loading from server..."})

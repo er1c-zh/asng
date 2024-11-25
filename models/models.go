@@ -45,12 +45,13 @@ type StockMetaAll struct {
 }
 
 type StockMetaItem struct {
-	Market        MarketType
-	Code          string
-	Desc          string
-	PinYinInitial string // TODO multi-prounciation
-	F0            float64
-	F1            float64
-	F2            uint16
-	F3            uint16
+	Market         MarketType
+	Code           string
+	Desc           string
+	PinYinInitial  string // TODO multi-prounciation
+	Scale          uint16
+	F0             float64
+	YesterdayClose float64
+	BlockID        uint16
+	F3             uint16
 }
