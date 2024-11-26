@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"asng/models"
@@ -86,7 +85,7 @@ func test000D() {
 	// Fmt.Printf("%v\n", (resp.ItemList))
 }
 
-func test0537() {
+func downloadFile() {
 	var err error
 	cli := proto.NewClient(context.Background(), proto.DefaultOption.
 		WithDebugMode().
@@ -102,12 +101,4 @@ func test0537() {
 	}
 	fmt.Printf("connected\n")
 
-	resp, err := cli.Subscribe(models.MarketSZ, "300059")
-	if err != nil {
-		fmt.Printf("error:%s", err)
-		return
-	}
-
-	j, _ := json.MarshalIndent(resp, "", "  ")
-	fmt.Printf("%s\n", string(j))
 }

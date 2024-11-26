@@ -64,6 +64,8 @@ func (ft FileType) String() string {
 	switch ft {
 	case TypeStockMeta:
 		return "stock_meta"
+	case TypeBaseDBF:
+		return "base_dbf"
 	default:
 		return "unknown"
 	}
@@ -73,6 +75,8 @@ func (ft FileType) fileName() string {
 	switch ft {
 	case TypeStockMeta:
 		return "stock_meta.json"
+	case TypeBaseDBF:
+		return "base.dbf"
 	default:
 		return "unknown"
 	}
@@ -80,6 +84,7 @@ func (ft FileType) fileName() string {
 
 const (
 	TypeStockMeta FileType = 1
+	TypeBaseDBF   FileType = 2
 )
 
 func SaveFile[T any](fm *FileManager, ft FileType, data T) error {
@@ -173,4 +178,18 @@ func (fm *FileManager) LoadStockMeta() (*FileMeta, *models.StockMetaAll, error) 
 
 func (fm *FileManager) SaveStockMeta(d *models.StockMetaAll) error {
 	return SaveFile(fm, TypeStockMeta, d)
+}
+
+func (fm *FileManager) LoadBaseDBF() (*FileMeta, []byte, error) {
+	h, d, err := ReadFile(fm, TypeBaseDBF, []byte{})
+	if err != nil {
+		return nil, nil, err
+	}
+	if h == nil {
+		return nil, nil, nil
+	}
+	return h, d, nil
+}
+func (fm *FileManager) SaveBaseDBF(d []byte) error {
+	return SaveFile(fm, TypeBaseDBF, d)
 }

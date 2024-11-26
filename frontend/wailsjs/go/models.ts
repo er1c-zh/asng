@@ -64,6 +64,22 @@ export namespace models {
 	    上海 = 0x1,
 	    北京 = 0x2,
 	}
+	export class BaseDBFRow {
+	    Market: MarketType;
+	    Code: string;
+	    Data: {[key: string]: any};
+	
+	    static createFrom(source: any = {}) {
+	        return new BaseDBFRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Market = source["Market"];
+	        this.Code = source["Code"];
+	        this.Data = source["Data"];
+	    }
+	}
 	export class ProcessInfo {
 	    Type: number;
 	    Msg: string;
@@ -102,6 +118,7 @@ export namespace models {
 	    YesterdayClose: number;
 	    BlockID: number;
 	    F3: number;
+	    BaseDBFItem?: BaseDBFRow;
 	
 	    static createFrom(source: any = {}) {
 	        return new StockMetaItem(source);
@@ -118,7 +135,26 @@ export namespace models {
 	        this.YesterdayClose = source["YesterdayClose"];
 	        this.BlockID = source["BlockID"];
 	        this.F3 = source["F3"];
+	        this.BaseDBFItem = this.convertValues(source["BaseDBFItem"], BaseDBFRow);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

@@ -155,6 +155,47 @@ func (a *App) asyncInit() {
 			a.LogProcessInfo(models.ProcessInfo{Msg: fmt.Sprintf("load stock meta cost: %d ms", time.Since(t0).Milliseconds())})
 		}
 		{
+			a.LogProcessInfo(models.ProcessInfo{Msg: "loading base.dbf..."})
+			t0 := time.Now()
+			var (
+				fileMeta *FileMeta
+				baseDBF  []byte
+			)
+			fileMeta, baseDBF, err = a.fm.LoadBaseDBF()
+			if err != nil {
+				a.LogProcessWarn(models.ProcessInfo{Msg: fmt.Sprintf("read base.dbf failed: %s", err.Error())})
+			}
+			if fileMeta != nil {
+				a.LogProcessInfo(models.ProcessInfo{Msg: fmt.Sprintf("base.dbf updated at %s", time.Unix(fileMeta.UpdatedAt, 0).Format("2006-01-02 15:04:05"))})
+			}
+			if len(baseDBF) == 0 {
+				a.LogProcessInfo(models.ProcessInfo{Msg: "base.dbf not found, loading from server..."})
+				baseDBF, err = a.cli.DownloadFile("base.dbf")
+				if err != nil {
+					return
+				}
+				a.LogProcessInfo(models.ProcessInfo{Msg: "base.dbf saving..."})
+				err = a.fm.SaveBaseDBF(baseDBF)
+				if err != nil {
+					a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("save base.dbf failed: %s", err.Error())})
+					return
+				}
+			}
+			dbf, err := proto.ParseBaseDBF(baseDBF)
+			if err != nil {
+				a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("parse base.dbf failed: %s", err.Error())})
+				return
+			}
+			for _, v := range dbf.Data {
+				if a.stockMetaMap[v.Code] == nil {
+					continue
+				}
+				runtime.LogDebugf(a.ctx, "base.dbf item: %+v", v)
+				a.stockMetaMap[v.Code].BaseDBFItem = &v
+			}
+			a.LogProcessInfo(models.ProcessInfo{Msg: fmt.Sprintf("load base.dbf cost: %d ms", time.Since(t0).Milliseconds())})
+		}
+		{
 			a.LogProcessInfo(models.ProcessInfo{Msg: "initializing quote subscription..."})
 			a.qs = NewQuoteSubscripition(a)
 			a.qs.Start()

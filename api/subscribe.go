@@ -40,7 +40,15 @@ func (a *QuoteSubscripition) Subscribe(req *SubscribeReq) {
 	defer a.rwMu.Unlock()
 	old, ok := a.m[req.Group]
 	if ok {
-		old.Code = append(old.Code, req.Code...)
+		for _, c := range req.Code {
+			for _, code := range old.Code {
+				if c == code {
+					goto nextCode
+				}
+			}
+			old.Code = append(old.Code, c)
+		nextCode:
+		}
 	} else {
 		a.m[req.Group] = req
 	}

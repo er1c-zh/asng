@@ -13,6 +13,7 @@ function Viewer(props: ViewerProps) {
   const [meta, setMeta] = useState<models.StockMetaItem>();
   useEffect(() => {
     StockMeta([props.Code]).then((d) => {
+      console.log(d.Code);
       return setMeta(d[props.Code]);
     });
     Subscribe(
@@ -49,6 +50,8 @@ function Viewer(props: ViewerProps) {
             <div>{meta.Desc}</div>
             <div>{data.CurrentPrice}</div>
             <div>{data.CurrentPrice + data.YesterdayCloseDelta}</div>
+            <div>资本信息更新于</div>
+            <div>{meta.BaseDBFItem?.Data["GXRQ"]}</div>
           </div>
         ) : (
           <div className="animate-pulse">{props.Code ? "Loading..." : ""}</div>

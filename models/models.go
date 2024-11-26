@@ -54,4 +54,30 @@ type StockMetaItem struct {
 	YesterdayClose float64
 	BlockID        uint16
 	F3             uint16
+
+	BaseDBFItem *BaseDBFRow
+}
+
+type BaseDBF struct {
+	BaseDBFHeader
+	Data []BaseDBFRow
+}
+
+type BaseDBFHeader struct {
+	RowCount     uint32
+	DataOffset   uint16
+	OneRowOffset uint16
+	ColMetaCount uint16
+	ColMetaList  []BaseDBFColMeta
+}
+
+type BaseDBFColMeta struct {
+	Name   string
+	Offset uint16
+	Width  uint8
+}
+type BaseDBFRow struct {
+	Market MarketType
+	Code   string
+	Data   map[string]any
 }

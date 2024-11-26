@@ -29,8 +29,11 @@ func (a *App) ServerStatus() *models.ServerStatus {
 
 func (a *App) StockMeta(s []string) map[string]models.StockMetaItem {
 	result := make(map[string]models.StockMetaItem)
-	for _, item := range a.stockMeta.StockList {
-		result[item.Code] = item
+	for _, code := range s {
+		if a.stockMetaMap[code] == nil {
+			continue
+		}
+		result[code] = *a.stockMetaMap[code]
 	}
 	return result
 }
