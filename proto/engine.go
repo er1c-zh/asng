@@ -27,6 +27,8 @@ type Client struct {
 
 	persistenceHandlerChan chan *respPkg
 	persistenceHandler     map[uint16]RespHandler
+
+	RealtimeConsumer RealtimeConsumer
 }
 
 func NewClient(ctx context.Context, opt Option) *Client {
@@ -39,7 +41,7 @@ func NewClient(ctx context.Context, opt Option) *Client {
 	return cli
 }
 
-type RespHandler func(ctx context.Context, h *RespHeader, data []byte)
+type RespHandler func(cli *Client, h *RespHeader, data []byte)
 
 // private
 func (c *Client) init() error {
@@ -73,7 +75,7 @@ func (c *Client) eventloop() {
 		case pkg := <-c.persistenceHandlerChan:
 			if h, ok := c.opt.RespHandler[pkg.header.Type0]; ok {
 				go func() {
-					h(c.ctx, &pkg.header, pkg.body)
+					h(c, &pkg.header, pkg.body)
 				}()
 			}
 		}

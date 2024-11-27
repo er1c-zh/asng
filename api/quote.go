@@ -31,3 +31,11 @@ func (a *App) TodayQuote(code string) []proto.QuoteFrame {
 	}
 	return resp.List
 }
+
+func (a *App) RealtimeInfo(req []proto.StockQuery) *proto.RealtimeInfoResp {
+	resp, err := a.cli.RealtimeInfo(req)
+	if err != nil {
+		return nil
+	}
+	return resp
+}

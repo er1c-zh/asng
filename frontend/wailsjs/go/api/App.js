@@ -34,6 +34,10 @@ export function MakeWailsHappy() {
   return window['go']['api']['App']['MakeWailsHappy']();
 }
 
+export function RealtimeInfo(arg1) {
+  return window['go']['api']['App']['RealtimeInfo'](arg1);
+}
+
 export function ServerStatus() {
   return window['go']['api']['App']['ServerStatus']();
 }
@@ -48,8 +52,4 @@ export function Subscribe(arg1) {
 
 export function TodayQuote(arg1) {
   return window['go']['api']['App']['TodayQuote'](arg1);
-}
-
-export function Unsubscribe(arg1) {
-  return window['go']['api']['App']['Unsubscribe'](arg1);
 }

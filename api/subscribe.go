@@ -1,9 +1,7 @@
 package api
 
 import (
-	"asng/models"
 	"asng/proto"
-	"fmt"
 	"sync"
 	"time"
 
@@ -35,108 +33,16 @@ func NewQuoteSubscripition(app *App) *QuoteSubscripition {
 	}
 }
 
-func (a *QuoteSubscripition) Subscribe(req *SubscribeReq) {
-	a.rwMu.Lock()
-	defer a.rwMu.Unlock()
-	old, ok := a.m[req.Group]
-	if ok {
-		for _, c := range req.Code {
-			for _, code := range old.Code {
-				if c == code {
-					goto nextCode
-				}
-			}
-			old.Code = append(old.Code, c)
-		nextCode:
-		}
-	} else {
-		a.m[req.Group] = req
-	}
-	a.urgent <- req.Group
-}
-
-func (a *QuoteSubscripition) Unsubscribe(req *SubscribeReq) {
-	a.rwMu.Lock()
-	defer a.rwMu.Unlock()
-	old, ok := a.m[req.Group]
-	if !ok {
-		return
-	}
-	if len(req.Code) == 0 {
-		delete(a.m, req.Group)
-		return
-	}
-	b := make([]string, len(old.Code)-1)
-	for _, code := range old.Code {
-		for _, c := range req.Code {
-			if code == c {
-				goto next
-			}
-		}
-		b = append(b, code)
-	next:
-	}
-	old.Code = b
-}
-
 func (a *QuoteSubscripition) Start() {
-	go a.worker()
+	a.app.cli.RegisterRealtimeConsumer(func(d proto.RealtimeInfoRespItem) {
+		runtime.EventsEmit(a.app.ctx, string(MsgKeySubscribeBroadcast), d)
+	})
 }
 
-func (a *QuoteSubscripition) worker() {
-	for {
-		select {
-		case <-a.ticker.C:
-			a.rwMu.RLock()
-			for _, req := range a.m {
-				realtimeReq := make([]proto.StockQuery, 0, len(req.Code))
-				for _, code := range req.Code {
-					if a.app.stockMetaMap[code] == nil {
-						continue
-					}
-					realtimeReq = append(realtimeReq,
-						proto.StockQuery{Market: uint8(a.app.stockMetaMap[code].Market), Code: code})
-				}
-				go func(req []proto.StockQuery, group string) {
-					resp, err := a.cli.RealtimeInfo(req)
-					if err != nil {
-						a.app.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("realtime subscribe failed: %s", err.Error())})
-						return
-					}
-					runtime.EventsEmit(a.app.ctx, string(MsgKeySubscribeBroadcast), group, resp.ItemList)
-				}(realtimeReq, req.Group)
-			}
-			a.rwMu.RUnlock()
-		case group := <-a.urgent:
-			a.rwMu.RLock()
-			req, ok := a.m[group]
-			if ok && req != nil {
-				realtimeReq := make([]proto.StockQuery, 0, len(req.Code))
-				for _, code := range req.Code {
-					if a.app.stockMetaMap[code] == nil {
-						continue
-					}
-					realtimeReq = append(realtimeReq,
-						proto.StockQuery{Market: uint8(a.app.stockMetaMap[code].Market), Code: code})
-				}
-				go func(req []proto.StockQuery, group string) {
-					resp, err := a.cli.RealtimeInfo(req)
-					if err != nil {
-						a.app.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("realtime subscribe failed: %s", err.Error())})
-						return
-					}
-					runtime.EventsEmit(a.app.ctx, string(MsgKeySubscribeBroadcast), group, resp.ItemList)
-				}(realtimeReq, req.Group)
-			}
-			a.rwMu.RUnlock()
-		}
+func (a *App) Subscribe(req []proto.StockQuery) *proto.RealtimeInfoResp {
+	resp, err := a.cli.RealtimeInfoSubscribe(req)
+	if err != nil {
+		return nil
 	}
-}
-
-func (a *App) Subscribe(req *SubscribeReq) {
-	a.qs.Subscribe(req)
-}
-
-func (a *App) Unsubscribe(req *SubscribeReq) {
-	a.qs.Unsubscribe(req)
+	return resp
 }

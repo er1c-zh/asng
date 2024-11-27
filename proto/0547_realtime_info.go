@@ -4,23 +4,31 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/json"
-	"fmt"
 	"sort"
 )
 
 var RealtimeSubscribeType0 uint16 = 0x0029
-var RealtimeSubscribeHandler RespHandler = func(ctx context.Context, h *RespHeader, data []byte) {
+var RealtimeSubscribeHandler RespHandler = func(c *Client, h *RespHeader, data []byte) {
 	a := &RealtimeInfo{}
-	err := a.UnmarshalResp(ctx, data)
+	err := a.UnmarshalResp(c.ctx, data)
 	if err != nil {
-		// TODO log
+		c.Log("RealtimeSubscribeHandler fail: %s", err.Error())
 		return
 	}
-	// TODO event emit
-	j, _ := json.MarshalIndent(a.Resp, "", "  ")
-	fmt.Printf("%s\n", j)
+	for _, item := range a.Resp.ItemList {
+		if c.RealtimeConsumer == nil {
+			c.LogDebug("RealtimeSubscribeHandler handler miss")
+			continue
+		}
+		c.RealtimeConsumer(item)
+	}
 }
+
+func (c *Client) RegisterRealtimeConsumer(h RealtimeConsumer) {
+	c.RealtimeConsumer = h
+}
+
+type RealtimeConsumer func(RealtimeInfoRespItem)
 
 func (c *Client) RealtimeInfo(stock []StockQuery) (*RealtimeInfoResp, error) {
 	return c.realtimeInfo(stock, false)
@@ -77,8 +85,7 @@ type RealtimeInfoResp struct {
 	ItemList []RealtimeInfoRespItem
 }
 type RealtimeInfoRespItem struct {
-	Market              uint8
-	Code                string
+	StockQuery
 	CurrentPrice        int64
 	YesterdayCloseDelta int64
 	OpenDelta           int64
@@ -95,7 +102,10 @@ type RealtimeInfoRespItem struct {
 	RByteArray0      []byte
 	TickInHHmmss     uint32 // time in in hhmmss
 	AfterHoursVolume int64  // 盘后量
-	RIntArray        [4]int64
+	SellAmount       int64
+	BuyAmount        int64
+	RInt0            int64
+	OpenAmount       int64
 	OrderBookRaw     [4 * 5]int64 // order book
 	OrderBookRows    []OrderBookRow
 	RByteArray1      []byte
@@ -166,11 +176,21 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 		return err
 	}
 
-	for i := 0; i < 4; i += 1 {
-		obj.RIntArray[i], err = ReadTDXInt(buf, cursor)
-		if err != nil {
-			return err
-		}
+	obj.SellAmount, err = ReadTDXInt(buf, cursor)
+	if err != nil {
+		return err
+	}
+	obj.BuyAmount, err = ReadTDXInt(buf, cursor)
+	if err != nil {
+		return err
+	}
+	obj.RInt0, err = ReadTDXInt(buf, cursor)
+	if err != nil {
+		return err
+	}
+	obj.OpenAmount, err = ReadTDXInt(buf, cursor)
+	if err != nil {
+		return err
 	}
 
 	for i := 0; i < 4*5; i += 1 {

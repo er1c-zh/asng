@@ -20,12 +20,12 @@ export function LogProcessWarn(arg1:models.ProcessInfo):Promise<void>;
 
 export function MakeWailsHappy():Promise<api.ExportStruct>;
 
+export function RealtimeInfo(arg1:Array<proto.StockQuery>):Promise<proto.RealtimeInfoResp>;
+
 export function ServerStatus():Promise<models.ServerStatus>;
 
 export function StockMeta(arg1:Array<string>):Promise<{[key: string]: models.StockMetaItem}>;
 
-export function Subscribe(arg1:api.SubscribeReq):Promise<void>;
+export function Subscribe(arg1:Array<proto.StockQuery>):Promise<proto.RealtimeInfoResp>;
 
 export function TodayQuote(arg1:string):Promise<Array<proto.QuoteFrame>>;
-
-export function Unsubscribe(arg1:api.SubscribeReq):Promise<void>;

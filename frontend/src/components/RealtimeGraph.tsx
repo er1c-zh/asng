@@ -86,13 +86,6 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
             ])
           )
           .tickFormat((d) => {
-            console.log(d.valueOf());
-            console.log(
-              9 +
-                Math.floor((d.valueOf() + 30) / 60) +
-                ":" +
-                d3.format("02d")((d.valueOf() + 30) % 60)
-            );
             if (d.valueOf() < 120) {
               return (
                 9 +
@@ -116,13 +109,6 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
       .call((g) => g.selectAll(".tick").attr("stroke-opacity", 0.5))
       .call((g) => g.select(".domain").remove())
       .call((g) => g.select(".tick").remove());
-
-    console.log(
-      Array.from({ length: 8 }, (_, i) => i).map(
-        (i) =>
-          yesterdayClose + (i - 4) * ((yScale.domain()[1] - yesterdayClose) / 4)
-      )
-    );
 
     d3.select(yAxisRef.current!)
       .call(

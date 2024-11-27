@@ -38,22 +38,6 @@ export namespace api {
 		    return a;
 		}
 	}
-	export class SubscribeReq {
-	    Group: string;
-	    Code: string[];
-	    QuoteType: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new SubscribeReq(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Group = source["Group"];
-	        this.Code = source["Code"];
-	        this.QuoteType = source["QuoteType"];
-	    }
-	}
 
 }
 
@@ -277,7 +261,10 @@ export namespace proto {
 	    RByteArray0: number[];
 	    TickInHHmmss: number;
 	    AfterHoursVolume: number;
-	    RIntArray: number[];
+	    SellAmount: number;
+	    BuyAmount: number;
+	    RInt0: number;
+	    OpenAmount: number;
 	    OrderBookRaw: number[];
 	    OrderBookRows: OrderBookRow[];
 	    RByteArray1: number[];
@@ -306,7 +293,10 @@ export namespace proto {
 	        this.RByteArray0 = source["RByteArray0"];
 	        this.TickInHHmmss = source["TickInHHmmss"];
 	        this.AfterHoursVolume = source["AfterHoursVolume"];
-	        this.RIntArray = source["RIntArray"];
+	        this.SellAmount = source["SellAmount"];
+	        this.BuyAmount = source["BuyAmount"];
+	        this.RInt0 = source["RInt0"];
+	        this.OpenAmount = source["OpenAmount"];
 	        this.OrderBookRaw = source["OrderBookRaw"];
 	        this.OrderBookRows = this.convertValues(source["OrderBookRows"], OrderBookRow);
 	        this.RByteArray1 = source["RByteArray1"];
@@ -330,6 +320,55 @@ export namespace proto {
 		    }
 		    return a;
 		}
+	}
+	export class RealtimeInfoResp {
+	    Data: number[];
+	    Count: number;
+	    ItemList: RealtimeInfoRespItem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new RealtimeInfoResp(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Data = source["Data"];
+	        this.Count = source["Count"];
+	        this.ItemList = this.convertValues(source["ItemList"], RealtimeInfoRespItem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class StockQuery {
+	    Market: number;
+	    Code: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new StockQuery(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Market = source["Market"];
+	        this.Code = source["Code"];
+	    }
 	}
 
 }

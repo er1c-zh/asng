@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { StockMeta, Subscribe, Unsubscribe } from "../../wailsjs/go/api/App";
+import { StockMeta, RealtimeInfo } from "../../wailsjs/go/api/App";
 import { api, models, proto } from "../../wailsjs/go/models";
 import { EventsOn, LogInfo } from "../../wailsjs/runtime/runtime";
+import { ticker } from "../Tools";
 
 function KeyMessage() {
   const [data, setData] = useState<proto.RealtimeInfoRespItem[]>([]);
@@ -10,44 +11,40 @@ function KeyMessage() {
   const indexList = ["999999", "399001", "399006", "880863", "880774"];
 
   useEffect(() => {
-    Subscribe(
-      api.SubscribeReq.createFrom({
-        Group: "KeyMessage",
-        Code: indexList,
-        QuoteType: "index",
-      })
-    );
-    const cancel = EventsOn(
-      api.MsgKey.subscribeBroadcast,
-      (group: string, data: proto.RealtimeInfoRespItem[]) => {
-        if (group !== "KeyMessage") {
-          return;
-        }
-        setData(data);
-        setRefreshAt(new Date());
-      }
-    );
     StockMeta(indexList).then((d) => {
       return setMeta(d);
     });
-    return () => {
-      Unsubscribe(
-        api.SubscribeReq.createFrom({
-          Group: "KeyMessage",
+  }, []);
+  useEffect(() => {
+    if (!meta) {
+      return;
+    }
+    const cancel = ticker(() => {
+      RealtimeInfo(
+        Object.entries(meta).map(([code, m]) => {
+          return proto.StockQuery.createFrom({
+            Market: m.Market,
+            Code: code,
+          });
         })
-      );
+      ).then((d) => {
+        setRefreshAt(new Date());
+        setData(d.ItemList);
+      });
+    }, 3 * 1000);
+    return () => {
       cancel();
     };
-  }, []);
+  }, [meta]);
   return (
     <div
       className={`flex flex-row h-full overflow-hidden text-sm ${
-        data.length > 0 ? "" : "animate-pulse"
+        data?.length > 0 ? "" : "animate-pulse"
       }`}
     >
       <div className="flex flex-col h-full px-1">
         <div className="flex my-auto">更新于</div>
-        {data.length > 0 ? (
+        {data?.length > 0 ? (
           <div className="flex my-auto">{refreshAt.toLocaleTimeString()}</div>
         ) : (
           <div className="flex my-auto">loading...</div>
