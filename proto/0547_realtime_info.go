@@ -4,12 +4,37 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
+	"sort"
 )
 
+var RealtimeSubscribeType0 uint16 = 0x0029
+var RealtimeSubscribeHandler RespHandler = func(ctx context.Context, h *RespHeader, data []byte) {
+	a := &RealtimeInfo{}
+	err := a.UnmarshalResp(ctx, data)
+	if err != nil {
+		// TODO log
+		return
+	}
+	// TODO event emit
+	j, _ := json.MarshalIndent(a.Resp, "", "  ")
+	fmt.Printf("%s\n", j)
+}
+
 func (c *Client) RealtimeInfo(stock []StockQuery) (*RealtimeInfoResp, error) {
+	return c.realtimeInfo(stock, false)
+}
+
+func (c *Client) RealtimeInfoSubscribe(stock []StockQuery) (*RealtimeInfoResp, error) {
+	return c.realtimeInfo(stock, true)
+}
+
+func (c *Client) realtimeInfo(stock []StockQuery, subscribe bool) (*RealtimeInfoResp, error) {
 	realtime := &RealtimeInfo{}
 
 	realtime.SetDebug(c.ctx)
+	realtime.Subscribe = subscribe
 
 	realtime.Req = &RealtimeInfoReq{
 		Size: uint16(len(stock)),
@@ -31,8 +56,9 @@ func (c *Client) RealtimeInfo(stock []StockQuery) (*RealtimeInfoResp, error) {
 
 type RealtimeInfo struct {
 	BlankCodec
-	Req  *RealtimeInfoReq
-	Resp *RealtimeInfoResp
+	Subscribe bool
+	Req       *RealtimeInfoReq
+	Resp      *RealtimeInfoResp
 }
 
 type RealtimeInfoReq struct {
@@ -58,9 +84,27 @@ type RealtimeInfoRespItem struct {
 	OpenDelta           int64
 	HighDelta           int64
 	LowDelta            int64
+	YesterdayClose      int64
+	Open                int64
+	High                int64
+	Low                 int64
 	TotalVolume         int64
 	CurrentVolume       int64
 	TotalAmount         float64
+
+	RByteArray0      []byte
+	TickInHHmmss     uint32 // time in in hhmmss
+	AfterHoursVolume int64  // 盘后量
+	RIntArray        [4]int64
+	OrderBookRaw     [4 * 5]int64 // order book
+	OrderBookRows    []OrderBookRow
+	RByteArray1      []byte
+	RIntArray2       [4*5 + 4]int64
+}
+
+type OrderBookRow struct {
+	Price  int64
+	Volume int64
 }
 
 func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, cursor *int) error {
@@ -73,7 +117,7 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 	if err != nil {
 		return err
 	}
-	_, err = ReadByteArray(buf, cursor, 2)
+	obj.RByteArray0, err = ReadByteArray(buf, cursor, 2)
 	if err != nil {
 		return err
 	}
@@ -98,12 +142,12 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 	if err != nil {
 		return err
 	}
-	_, err = ReadInt(buf, cursor, uint32(0))
+	obj.TickInHHmmss, err = ReadInt(buf, cursor, obj.TickInHHmmss)
 	if err != nil {
 		return err
 	}
 
-	_, err = ReadTDXInt(buf, cursor)
+	obj.AfterHoursVolume, err = ReadTDXInt(buf, cursor)
 	if err != nil {
 		return err
 	}
@@ -123,26 +167,26 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 	}
 
 	for i := 0; i < 4; i += 1 {
-		_, err = ReadTDXInt(buf, cursor)
+		obj.RIntArray[i], err = ReadTDXInt(buf, cursor)
 		if err != nil {
 			return err
 		}
 	}
 
 	for i := 0; i < 4*5; i += 1 {
-		_, err = ReadTDXInt(buf, cursor)
+		obj.OrderBookRaw[i], err = ReadTDXInt(buf, cursor)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = ReadByteArray(buf, cursor, 2+4+4)
+	obj.RByteArray1, err = ReadByteArray(buf, cursor, 2+4+4)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < 4*5+4; i += 1 {
-		_, err = ReadTDXInt(buf, cursor)
+		obj.RIntArray2[i], err = ReadTDXInt(buf, cursor)
 		if err != nil {
 			return err
 		}
@@ -154,6 +198,9 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 func (obj *RealtimeInfo) FillReqHeader(ctx context.Context, header *ReqHeader) error {
 	header.Method = 0x0547
 	header.Type0 = 0x002A
+	if obj.Subscribe {
+		header.Type0 = 0x0029
+	}
 	return nil
 }
 
@@ -191,6 +238,26 @@ func (obj *RealtimeInfo) UnmarshalResp(ctx context.Context, data []byte) error {
 		if err != nil {
 			return err
 		}
+
+		item.Open = item.CurrentPrice + item.OpenDelta
+		item.YesterdayClose = item.CurrentPrice + item.YesterdayCloseDelta
+		item.High = item.CurrentPrice + item.HighDelta
+		item.Low = item.CurrentPrice + item.LowDelta
+
+		for i := 0; i < len(item.OrderBookRaw); i += 4 {
+			item.OrderBookRows = append(item.OrderBookRows, OrderBookRow{
+				Price:  item.CurrentPrice + item.OrderBookRaw[i],
+				Volume: item.OrderBookRaw[i+2],
+			})
+			item.OrderBookRows = append(item.OrderBookRows, OrderBookRow{
+				Price:  item.CurrentPrice + item.OrderBookRaw[i+1],
+				Volume: item.OrderBookRaw[i+3],
+			})
+		}
+		sort.Slice(item.OrderBookRows, func(i, j int) bool {
+			return item.OrderBookRows[i].Price < item.OrderBookRows[j].Price
+		})
+
 		obj.Resp.ItemList = append(obj.Resp.ItemList, item)
 	}
 

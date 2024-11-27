@@ -20,6 +20,7 @@ type Options struct {
 	MsgCallback       func(models.ProcessInfo)
 	Debug             bool
 	MetaAddress       string // meta 数据服务器
+	RespHandler       map[uint16]RespHandler
 }
 
 func defaultOptions() *Options {
@@ -85,6 +86,16 @@ func (Option Option) WithDebugMode() Option {
 func (Option Option) WithMetaAddress(metaAddress string) Option {
 	return func(o *Options) {
 		o.MetaAddress = metaAddress
+		Option(o)
+	}
+}
+
+func (Option Option) WithRespHandler(type0 uint16, h RespHandler) Option {
+	return func(o *Options) {
+		if o.RespHandler == nil {
+			o.RespHandler = make(map[uint16]RespHandler, 0)
+		}
+		o.RespHandler[type0] = h
 		Option(o)
 	}
 }

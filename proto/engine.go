@@ -24,6 +24,9 @@ type Client struct {
 	// TDX seed
 	handShakeSeed uint32
 	macAddr       [6]byte
+
+	persistenceHandlerChan chan *respPkg
+	persistenceHandler     map[uint16]RespHandler
 }
 
 func NewClient(ctx context.Context, opt Option) *Client {
@@ -35,6 +38,8 @@ func NewClient(ctx context.Context, opt Option) *Client {
 	cli.Log("init success.")
 	return cli
 }
+
+type RespHandler func(ctx context.Context, h *RespHeader, data []byte)
 
 // private
 func (c *Client) init() error {
@@ -51,7 +56,28 @@ func (c *Client) init() error {
 		return err
 	}
 	c.Log("mac addr: %s", hex.EncodeToString(c.macAddr[:]))
+	c.persistenceHandlerChan = make(chan *respPkg, 1024)
+	c.persistenceHandler = make(map[uint16]RespHandler)
+	for k, v := range c.opt.RespHandler {
+		c.persistenceHandler[k] = v
+	}
+	go c.eventloop()
 	return nil
+}
+
+func (c *Client) eventloop() {
+	for {
+		select {
+		case <-c.done:
+			return
+		case pkg := <-c.persistenceHandlerChan:
+			if h, ok := c.opt.RespHandler[pkg.header.Type0]; ok {
+				go func() {
+					h(c.ctx, &pkg.header, pkg.body)
+				}()
+			}
+		}
+	}
 }
 
 func (c *Client) Log(msg string, args ...any) {
@@ -163,7 +189,10 @@ func (c *Client) Connect() error {
 		return err
 	}
 
-	// FIXME: TDXHandshake cause error
+	for type0 := range c.persistenceHandler {
+		c.dataConn.RegisterHandler(type0, c.persistenceHandlerChan)
+	}
+
 	_, err = c.TDXHandshake()
 	if err != nil {
 		defer c.Disconnect()

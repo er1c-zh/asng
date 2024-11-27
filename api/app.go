@@ -95,7 +95,8 @@ func (a *App) asyncInit() {
 				WithDebugMode().
 				WithTCPAddress("110.41.147.114:7709").
 				WithMsgCallback(a.EmitProcessInfo).
-				WithMetaAddress("124.71.223.19:7727"))
+				WithMetaAddress("124.71.223.19:7727").
+				WithRespHandler(proto.RealtimeSubscribeType0, proto.RealtimeSubscribeHandler))
 			err = a.cli.Connect()
 			if err != nil {
 				a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("connect client failed: %s", err.Error())})

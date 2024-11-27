@@ -229,6 +229,20 @@ export namespace proto {
 		    return a;
 		}
 	}
+	export class OrderBookRow {
+	    Price: number;
+	    Volume: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new OrderBookRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Price = source["Price"];
+	        this.Volume = source["Volume"];
+	    }
+	}
 	export class QuoteFrame {
 	    Price: number;
 	    AvgPrice: number;
@@ -253,9 +267,21 @@ export namespace proto {
 	    OpenDelta: number;
 	    HighDelta: number;
 	    LowDelta: number;
+	    YesterdayClose: number;
+	    Open: number;
+	    High: number;
+	    Low: number;
 	    TotalVolume: number;
 	    CurrentVolume: number;
 	    TotalAmount: number;
+	    RByteArray0: number[];
+	    TickInHHmmss: number;
+	    AfterHoursVolume: number;
+	    RIntArray: number[];
+	    OrderBookRaw: number[];
+	    OrderBookRows: OrderBookRow[];
+	    RByteArray1: number[];
+	    RIntArray2: number[];
 	
 	    static createFrom(source: any = {}) {
 	        return new RealtimeInfoRespItem(source);
@@ -270,10 +296,40 @@ export namespace proto {
 	        this.OpenDelta = source["OpenDelta"];
 	        this.HighDelta = source["HighDelta"];
 	        this.LowDelta = source["LowDelta"];
+	        this.YesterdayClose = source["YesterdayClose"];
+	        this.Open = source["Open"];
+	        this.High = source["High"];
+	        this.Low = source["Low"];
 	        this.TotalVolume = source["TotalVolume"];
 	        this.CurrentVolume = source["CurrentVolume"];
 	        this.TotalAmount = source["TotalAmount"];
+	        this.RByteArray0 = source["RByteArray0"];
+	        this.TickInHHmmss = source["TickInHHmmss"];
+	        this.AfterHoursVolume = source["AfterHoursVolume"];
+	        this.RIntArray = source["RIntArray"];
+	        this.OrderBookRaw = source["OrderBookRaw"];
+	        this.OrderBookRows = this.convertValues(source["OrderBookRows"], OrderBookRow);
+	        this.RByteArray1 = source["RByteArray1"];
+	        this.RIntArray2 = source["RIntArray2"];
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

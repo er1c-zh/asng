@@ -24,7 +24,7 @@ func (a *App) TodayQuote(code string) []proto.QuoteFrame {
 	if !ok {
 		return nil
 	}
-	resp, err := a.cli.Subscribe(meta.Market, code)
+	resp, err := a.cli.RealtimeGraph(meta.Market, code)
 	if err != nil {
 		a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("today quote failed: %s", err.Error())})
 		return nil

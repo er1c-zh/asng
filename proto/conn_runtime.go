@@ -212,7 +212,7 @@ func (r *ConnRuntime) recvHandler() {
 		} else if h, ok := r.persistanceHandler[header.Type0]; ok {
 			callbackChan = h.callback
 		} else {
-			r.log("handler not found: %s %d", header.Method, header.SeqID)
+			r.log("handler not found: %s %d, type0: %d", header.Method, header.SeqID, header.Type0)
 		}
 		r.muHandlerRedister.Unlock()
 		if callbackChan != nil {
