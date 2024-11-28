@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"sort"
 )
 
@@ -99,16 +100,19 @@ type RealtimeInfoRespItem struct {
 	CurrentVolume       int64
 	TotalAmount         float64
 
-	RByteArray0      []byte
+	TickNo           uint16
 	TickInHHmmss     uint32 // time in in hhmmss
 	AfterHoursVolume int64  // 盘后量
 	SellAmount       int64
 	BuyAmount        int64
-	RInt0            int64
+	TickPriceDelta   int64
 	OpenAmount       int64
 	OrderBookRaw     [4 * 5]int64 // order book
 	OrderBookRows    []OrderBookRow
-	RByteArray1      []byte
+	RUint0           uint16
+	RUint1           uint32
+	RUint2           uint32
+	RB               string
 	RIntArray2       [4*5 + 4]int64
 }
 
@@ -127,7 +131,7 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 	if err != nil {
 		return err
 	}
-	obj.RByteArray0, err = ReadByteArray(buf, cursor, 2)
+	obj.TickNo, err = ReadInt(buf, cursor, obj.TickNo)
 	if err != nil {
 		return err
 	}
@@ -184,7 +188,7 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 	if err != nil {
 		return err
 	}
-	obj.RInt0, err = ReadTDXInt(buf, cursor)
+	obj.TickPriceDelta, err = ReadTDXInt(buf, cursor)
 	if err != nil {
 		return err
 	}
@@ -200,10 +204,23 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 		}
 	}
 
-	obj.RByteArray1, err = ReadByteArray(buf, cursor, 2+4+4)
+	tmp, err := ReadByteArray(buf, cursor, 10)
 	if err != nil {
 		return err
 	}
+	obj.RB = hex.Dump(tmp)
+	// obj.RUint0, err = ReadInt(buf, cursor, obj.RUint0)
+	// if err != nil {
+	// 	return err
+	// }
+	// obj.RUint1, err = ReadInt(buf, cursor, obj.RUint1)
+	// if err != nil {
+	// 	return err
+	// }
+	// obj.RUint2, err = ReadInt(buf, cursor, obj.RUint2)
+	// if err != nil {
+	// 	return err
+	// }
 
 	for i := 0; i < 4*5+4; i += 1 {
 		obj.RIntArray2[i], err = ReadTDXInt(buf, cursor)

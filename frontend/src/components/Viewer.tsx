@@ -11,8 +11,19 @@ type ViewerProps = {
 };
 function Viewer(props: ViewerProps) {
   const [data, setData] = useState<proto.RealtimeInfoRespItem>();
+  const [dataList, setDataList] = useState<proto.RealtimeInfoRespItem[]>([]);
   const [meta, setMeta] = useState<models.StockMetaItem>();
+  const [transaction, setTransaction] = useState<number[][]>([]);
   const [refreshAt, setRefreshAt] = useState(new Date());
+
+  const setDataWrapper = useCallback(
+    (d: proto.RealtimeInfoRespItem) => {
+      setData(d);
+      console.log(dataList.length);
+      setDataList(dataList.concat(d));
+    },
+    [dataList]
+  );
 
   useEffect(() => {
     StockMeta([props.Code]).then((d) => {
@@ -31,12 +42,12 @@ function Viewer(props: ViewerProps) {
         if (d.Code !== meta!.Code) {
           return;
         }
-        setData(d);
+        setDataWrapper(d);
         setRefreshAt(new Date());
       }
     );
     return cancel;
-  }, [meta]);
+  }, [meta, setDataWrapper]);
 
   useEffect(() => {
     if (!meta) {
@@ -52,7 +63,6 @@ function Viewer(props: ViewerProps) {
         if (d.ItemList[0]?.Code === meta.Code) {
           setData(d.ItemList[0]!);
           setRefreshAt(new Date());
-          console.log(d.ItemList[0]);
         }
       });
     }, 15 * 1000);
@@ -135,7 +145,29 @@ function Viewer(props: ViewerProps) {
             <RealtimeGraph code={props.Code} realtimeData={data} />
           </div>
         </div>
-        <div className="flex flex-col h-full w-1/2">quote and tick</div>
+        <div className="flex flex-col h-full w-1/2">
+          <div className="flex flex-col w-1/3 overflow-auto">
+            {dataList.map((d, i, a) => {
+              return (
+                <div key={d.TickNo} className="flex flex-row">
+                  <div className="grow-0">
+                    {d.TickInHHmmss / 10000 +
+                      ":" +
+                      ((d.TickInHHmmss / 100) % 100) +
+                      ":" +
+                      (d.TickInHHmmss % 100)}
+                  </div>
+                  <div className="flex flex-grow"></div>
+                  <div className="grow-0">
+                    {i > 0
+                      ? d.TotalVolume - a[i - 1].TotalVolume
+                      : d.TotalVolume}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -123,26 +123,27 @@ func testSubscribe() {
 	fmt.Printf("server name:%s\n", serverInfo.Name)
 
 	// err = cli.Nop(0x0547, 0x0029, "0100013630303034388ab00100") // subscribe
-	// err = cli.Nop(0x0547, 0x0029, "01000136303030343800000000") // subscribe
+	// err = cli.Nop(0x0FC5, 0x1C00, "010036303030343800003200") // subscribe
+	// err = cli.Nop(0x0FC5, 0x0100, "010036303030343800008403") // subscribe
 
 	// resp, err := cli.RealtimeInfoSubscribe([]proto.StockQuery{
 	// 	{Market: uint8(models.MarketSH), Code: "600000"},
 	// 	{Market: uint8(models.MarketSZ), Code: "300050"},
 	// })
-	resp, err := cli.RealtimeInfo([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "600000"}})
+	// resp, err := cli.RealtimeInfo([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "600000"}})
+	resp, err := cli.Transaction(proto.StockQuery{Market: uint8(models.MarketSH), Code: "600000"}, true)
 	if err != nil {
 		fmt.Printf("error:%s", err)
 		return
 	}
+	j, _ := json.MarshalIndent(resp, "", "  ")
+	fmt.Printf("%s\n", j)
 
 	// resp, err := cli.RealtimeGraph(models.MarketSH, "600000")
 	// if err != nil {
 	// fmt.Printf("error:%s", err)
 	// return
 	// }
-
-	j, _ := json.MarshalIndent(resp, "", "  ")
-	fmt.Printf("%s\n", j)
 
 	time.Sleep(100 * time.Second)
 

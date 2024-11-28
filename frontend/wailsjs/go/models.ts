@@ -258,16 +258,19 @@ export namespace proto {
 	    TotalVolume: number;
 	    CurrentVolume: number;
 	    TotalAmount: number;
-	    RByteArray0: number[];
+	    TickNo: number;
 	    TickInHHmmss: number;
 	    AfterHoursVolume: number;
 	    SellAmount: number;
 	    BuyAmount: number;
-	    RInt0: number;
+	    TickPriceDelta: number;
 	    OpenAmount: number;
 	    OrderBookRaw: number[];
 	    OrderBookRows: OrderBookRow[];
-	    RByteArray1: number[];
+	    RUint0: number;
+	    RUint1: number;
+	    RUint2: number;
+	    RB: string;
 	    RIntArray2: number[];
 	
 	    static createFrom(source: any = {}) {
@@ -290,16 +293,19 @@ export namespace proto {
 	        this.TotalVolume = source["TotalVolume"];
 	        this.CurrentVolume = source["CurrentVolume"];
 	        this.TotalAmount = source["TotalAmount"];
-	        this.RByteArray0 = source["RByteArray0"];
+	        this.TickNo = source["TickNo"];
 	        this.TickInHHmmss = source["TickInHHmmss"];
 	        this.AfterHoursVolume = source["AfterHoursVolume"];
 	        this.SellAmount = source["SellAmount"];
 	        this.BuyAmount = source["BuyAmount"];
-	        this.RInt0 = source["RInt0"];
+	        this.TickPriceDelta = source["TickPriceDelta"];
 	        this.OpenAmount = source["OpenAmount"];
 	        this.OrderBookRaw = source["OrderBookRaw"];
 	        this.OrderBookRows = this.convertValues(source["OrderBookRows"], OrderBookRow);
-	        this.RByteArray1 = source["RByteArray1"];
+	        this.RUint0 = source["RUint0"];
+	        this.RUint1 = source["RUint1"];
+	        this.RUint2 = source["RUint2"];
+	        this.RB = source["RB"];
 	        this.RIntArray2 = source["RIntArray2"];
 	    }
 	
