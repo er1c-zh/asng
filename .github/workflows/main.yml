@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - dev
 
 env:
   # Necessary for most environments as build failure can occur due to OOM issues
@@ -16,13 +17,13 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - name: "App"
+          - name: "Linux"
             platform: "linux/amd64"
             os: "ubuntu-latest"
-          - name: "App"
+          - name: "Windows"
             platform: "windows/amd64"
             os: "windows-latest"
-          - name: "App"
+          - name: "macOS"
             platform: "darwin/universal"
             os: "macos-latest"
 
