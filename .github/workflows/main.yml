@@ -5,6 +5,8 @@ on:
     branches:
       - master
       - dev
+    tags:
+      - '*'
 
 env:
   # Necessary for most environments as build failure can occur due to OOM issues
@@ -35,7 +37,7 @@ jobs:
           submodules: recursive
 
       - name: Build wails
-        uses: dAppServer/wails-build-action@v2.2
+        uses: er1c-zh/wails-build-action@v1
         id: build
         with:
           build-name: ${{ matrix.build.name }}
