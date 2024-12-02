@@ -3,6 +3,7 @@ import { proto } from "../../wailsjs/go/models";
 import { TodayQuote } from "../../wailsjs/go/api/App";
 import * as d3 from "d3";
 import { LogInfo } from "../../wailsjs/runtime/runtime";
+import { formatPrice } from "./Viewer";
 
 type RealtimeGraphProps = {
   code: string;
@@ -14,7 +15,8 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
     width: 0,
     height: 0,
   });
-  const [data, setData] = useState<proto.QuoteFrame[] | null>(null);
+  const [data, setData] = useState<proto.QuoteFrame[]>([]);
+  const [cursorX, setCursorX] = useState(0);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
@@ -35,6 +37,7 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
     }
     TodayQuote(props.code).then((data) => {
       setData(data);
+      setCursorX(data.length - 1);
     });
   }, [props.code]);
 
@@ -175,8 +178,15 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
 
   return (
     <div className="flex flex-col w-full h-full">
-      <div className="flex grow-0">
-        {props.code} {dimensions.width}x{dimensions.height} {data?.length}
+      <div className="flex flex-row space-x-2 grow-0">
+        <div className="flex">分时图</div>
+        <div className="flex">{props.code}</div>
+        <div className="flex">
+          现价 {formatPrice(data[cursorX]?.Price, 100)}
+        </div>
+        <div className="flex text-yellow-400">
+          均价 {formatPrice(data[cursorX]?.AvgPrice, 10000)}
+        </div>
       </div>
       <div ref={containerRef} className="flex grow">
         <svg

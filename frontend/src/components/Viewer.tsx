@@ -19,7 +19,6 @@ function Viewer(props: ViewerProps) {
   const setDataWrapper = useCallback(
     (d: proto.RealtimeInfoRespItem) => {
       setData(d);
-      console.log(dataList.length);
       setDataList(dataList.concat(d));
     },
     [dataList]
@@ -72,23 +71,28 @@ function Viewer(props: ViewerProps) {
   }, [meta]);
 
   return (
-    <div className="flex flex-row w-full h-full">
-      <div className="flex flex-col w-48 h-full space-y-2 pl-2">
+    <div className="flex flex-row w-full grow">
+      <div className="flex flex-col w-48 w-max-48 grow space-y-2 pl-2">
         <div className="flex flex-col flex-grow">
           {data && meta ? (
             <div>
               <LabelGroup Title={meta.Code} Data={meta.Desc} />
               <LabelGroup
                 Title="当前价"
-                Data={data.CurrentPrice / meta.Scale}
+                Data={formatPrice(data.CurrentPrice, meta.Scale)}
               />
               <LabelGroup
                 Title="昨日收盘"
-                Data={data.YesterdayClose / meta.Scale}
+                Data={formatPrice(data.YesterdayClose, meta.Scale)}
               />
               <LabelGroup
                 Title="涨跌"
-                Data={-data.OpenDelta / meta.Scale + "%"}
+                Data={
+                  (
+                    (-data.YesterdayCloseDelta / data.YesterdayClose) *
+                    100
+                  ).toFixed(2) + "%"
+                }
               />
               <LabelGroup
                 Title="流通市值"
@@ -133,32 +137,38 @@ function Viewer(props: ViewerProps) {
           {refreshAt.toLocaleTimeString()}
         </div>
       </div>
-      <div className="flex flex-row w-full">
-        <div className="flex flex-col h-full w-1/2">
-          <div className="flex h-1/2 w-full min-w-full">
+      <div className="flex flex-row w-full grow">
+        <div className="flex flex-col w-1/2 grow">
+          <div className="flex w-full h-1/2 min-w-full">
             <CandleStickView
               code={props.Code}
               period={proto.CandleStickPeriodType.CandleStickPeriodType1Day}
             />
           </div>
-          <div className="flex h-1/2 w-full">
+          <div className="flex w-full h-1/2 min-w-full">
             <RealtimeGraph code={props.Code} realtimeData={data} />
           </div>
         </div>
-        <div className="flex flex-col h-full w-1/2">
-          <div className="flex flex-col w-1/3 overflow-auto">
+        <div className="flex flex-col w-1/2 grow">
+          <div className="flex flex-col w-1/3 grow overflow-y-scroll">
             {dataList.map((d, i, a) => {
               return (
                 <div key={d.TickNo} className="flex flex-row">
                   <div className="grow-0">
-                    {d.TickInHHmmss / 10000 +
+                    {(d.TickInHHmmss / 10000 - 1)
+                      .toFixed(0)
+                      .toString()
+                      .padStart(2, "0") +
                       ":" +
-                      ((d.TickInHHmmss / 100) % 100) +
+                      ((d.TickInHHmmss / 100) % 100)
+                        .toFixed(0)
+                        .toString()
+                        .padStart(2, "0") +
                       ":" +
-                      (d.TickInHHmmss % 100)}
+                      (d.TickInHHmmss % 100).toString().padStart(2, "0")}
                   </div>
                   <div className="flex flex-grow"></div>
-                  <div className="grow-0">
+                  <div className="grow-0 pr-4">
                     {i > 0
                       ? d.TotalVolume - a[i - 1].TotalVolume
                       : d.TotalVolume}
@@ -197,4 +207,8 @@ function formatAmount(amount: number) {
     return (amount / 10000).toFixed(2) + "万";
   }
   return amount.toFixed(2);
+}
+
+export function formatPrice(price: number, scale: number = 1) {
+  return (price / scale).toFixed(2);
 }

@@ -51,16 +51,42 @@ function App() {
     });
   }, []);
 
+  const statusBarRef = useRef<HTMLDivElement>(null);
+  const [statusBarDimensions, setStatusBarDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver((entries) => {
+      setStatusBarDimensions({
+        width: entries[0].contentRect.width,
+        height: entries[0].contentRect.height,
+      });
+      console.log(entries[0].contentRect);
+    });
+    resizeObserver.observe(statusBarRef.current!);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [statusBarRef.current]);
+
   return (
-    <div id="App" className="bg-gray-900 h-dvh w-full">
+    <div id="App" className="bg-gray-900 h-dvh max-h-dvh w-full">
       <div
         id="content"
-        className={`h-full w-full flex flex-col ${
+        className={`flex flex-col w-full h-full overflow-hidden ${
           blur0 || blur1 ? "blur-sm" : ""
         }`}
       >
-        <StatusBar appState={appState} />
-        <div className="flex h-full w-full">
+        <div ref={statusBarRef} className="flex w-full">
+          <StatusBar appState={appState} />
+        </div>
+        <div
+          className="flex w-full"
+          style={{
+            height: window.innerHeight - statusBarDimensions.height,
+          }}
+        >
           {appState === 0 ? (
             <Portal connectDoneCallback={connectDone} />
           ) : (
