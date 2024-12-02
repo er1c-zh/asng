@@ -17,13 +17,13 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - name: "Linux"
+          - name: "asNg"
             platform: "linux/amd64"
             os: "ubuntu-latest"
-          - name: "Windows"
+          - name: "asNg"
             platform: "windows/amd64"
             os: "windows-latest"
-          - name: "macOS"
+          - name: "asNg"
             platform: "darwin/universal"
             os: "macos-latest"
 

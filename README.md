@@ -8,7 +8,7 @@ Next Generation A share trade station!
 
 Preview:
 
-![working preview](./doc/WIP.png)
+![working preview](./doc/WIP1202.png)
 
 ## Features
 
