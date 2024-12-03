@@ -27,6 +27,10 @@ const (
 	MarketBJ MarketType = 2
 )
 
+func (mt MarketType) Uint8() uint8 {
+	return uint8(mt)
+}
+
 func (m MarketType) String() string {
 	switch m {
 	case MarketSZ:
@@ -45,8 +49,7 @@ type StockMetaAll struct {
 }
 
 type StockMetaItem struct {
-	Market         MarketType
-	Code           string
+	ID             StockIdentity
 	Desc           string
 	PinYinInitial  string // TODO multi-prounciation
 	Scale          uint16
@@ -77,7 +80,6 @@ type BaseDBFColMeta struct {
 	Width  uint8
 }
 type BaseDBFRow struct {
-	Market MarketType
-	Code   string
-	Data   map[string]any
+	ID   StockIdentity
+	Data map[string]any
 }

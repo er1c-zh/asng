@@ -8,11 +8,12 @@ import StatusBar from "./components/StatusBar";
 import KeyMessage from "./components/KeyMessage";
 import { ServerStatus } from "../wailsjs/go/api/App";
 import { LogInfo } from "../wailsjs/runtime/runtime";
+import { models } from "../wailsjs/go/models";
 
 function App() {
   const [appState, setAppState] = useState(Number);
   // command panel
-  const [code, setCode] = useState("");
+  const [id, setID] = useState(models.StockIdentity.createFrom({}));
   const [showTerminal, setShowTerminal] = useState(false);
   const [blur0, setBlur0] = useState(false);
   const [blur1, setBlur1] = useState(false);
@@ -90,11 +91,11 @@ function App() {
           {appState === 0 ? (
             <Portal connectDoneCallback={connectDone} />
           ) : (
-            <Viewer Code={code} />
+            <Viewer id={id} />
           )}
         </div>
       </div>
-      <CommandPanel setCode={setCode} setIsActive={setBlur1} />
+      <CommandPanel setID={setID} setIsActive={setBlur1} />
       <div
         className={`fixed top-0 left-0 w-full h-full border-2 border-gray-500 opacity-75 ${
           showTerminal ? "" : "hidden"

@@ -1,8 +1,8 @@
 package api
 
 import (
+	"asng/models"
 	"asng/proto"
-	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -10,7 +10,6 @@ import (
 
 type QuoteSubscripition struct {
 	app    *App
-	rwMu   sync.RWMutex
 	cli    *proto.Client
 	m      map[string]*SubscribeReq
 	ticker *time.Ticker
@@ -39,7 +38,7 @@ func (a *QuoteSubscripition) Start() {
 	})
 }
 
-func (a *App) Subscribe(req []proto.StockQuery) *proto.RealtimeInfoResp {
+func (a *App) Subscribe(req []models.StockIdentity) *proto.RealtimeInfoResp {
 	resp, err := a.cli.RealtimeInfoSubscribe(req)
 	if err != nil {
 		return nil

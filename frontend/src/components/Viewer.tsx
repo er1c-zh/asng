@@ -7,7 +7,7 @@ import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { ticker } from "../Tools";
 
 type ViewerProps = {
-  Code: string;
+  id: models.StockIdentity;
 };
 function Viewer(props: ViewerProps) {
   const [data, setData] = useState<proto.RealtimeInfoRespItem>();
@@ -25,11 +25,12 @@ function Viewer(props: ViewerProps) {
   );
 
   useEffect(() => {
-    StockMeta([props.Code]).then((d) => {
-      console.log(d[props.Code]);
-      return setMeta(d[props.Code]);
+    StockMeta([props.id]).then((d) => {
+      if (d.length > 0) {
+        setMeta(d[0]);
+      }
     });
-  }, [props.Code]);
+  }, [props.id]);
 
   useEffect(() => {
     if (!meta) {
@@ -38,7 +39,7 @@ function Viewer(props: ViewerProps) {
     const cancel = EventsOn(
       api.MsgKey.subscribeBroadcast,
       (d: proto.RealtimeInfoRespItem) => {
-        if (d.Code !== meta!.Code) {
+        if (d.Code !== meta!.ID.Code) {
           return;
         }
         setDataWrapper(d);
@@ -53,13 +54,8 @@ function Viewer(props: ViewerProps) {
       return;
     }
     const cancel = ticker(() => {
-      Subscribe([
-        proto.StockQuery.createFrom({
-          Market: meta!.Market,
-          Code: meta!.Code,
-        }),
-      ]).then((d) => {
-        if (d.ItemList[0]?.Code === meta.Code) {
+      Subscribe([meta.ID]).then((d) => {
+        if (d.ItemList[0]?.Code === meta.ID.Code) {
           setData(d.ItemList[0]!);
           setRefreshAt(new Date());
         }
@@ -76,7 +72,7 @@ function Viewer(props: ViewerProps) {
         <div className="flex flex-col flex-grow">
           {data && meta ? (
             <div>
-              <LabelGroup Title={meta.Code} Data={meta.Desc} />
+              <LabelGroup Title={meta.ID.Code} Data={meta.Desc} />
               <LabelGroup
                 Title="当前价"
                 Data={formatPrice(data.CurrentPrice, meta.Scale)}
@@ -129,7 +125,7 @@ function Viewer(props: ViewerProps) {
             </div>
           ) : (
             <div className="animate-pulse">
-              {props.Code ? "Loading..." : ""}
+              {props.id.Code ? "Loading..." : ""}
             </div>
           )}
         </div>
@@ -141,12 +137,12 @@ function Viewer(props: ViewerProps) {
         <div className="flex flex-col w-1/2 grow">
           <div className="flex w-full h-1/2 min-w-full">
             <CandleStickView
-              code={props.Code}
+              id={props.id}
               period={proto.CandleStickPeriodType.CandleStickPeriodType1Day}
             />
           </div>
           <div className="flex w-full h-1/2 min-w-full">
-            <RealtimeGraph code={props.Code} realtimeData={data} />
+            <RealtimeGraph id={props.id} realtimeData={data} />
           </div>
         </div>
         <div className="flex flex-col w-1/2 grow">

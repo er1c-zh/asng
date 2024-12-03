@@ -41,8 +41,7 @@ func (c *Client) StockMetaAll() (*models.StockMetaAll, error) {
 			}
 			for _, item := range resp.List {
 				d.StockList = append(d.StockList, models.StockMetaItem{
-					Code:           item.Code,
-					Market:         market,
+					ID:             models.StockIdentity{MarketType: market, Code: item.Code},
 					Desc:           item.Desc,
 					PinYinInitial:  getPinYinInitial(item.Desc),
 					Scale:          item.Scale,

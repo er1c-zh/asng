@@ -10,7 +10,7 @@ import {
 import { CommandMatch } from "../../wailsjs/go/api/App";
 
 interface CommandPanelProps {
-  setCode: React.Dispatch<React.SetStateAction<string>>;
+  setID: React.Dispatch<React.SetStateAction<models.StockIdentity>>;
   setIsActive: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -42,7 +42,7 @@ function CommandPanel(props: CommandPanelProps) {
           setFocusIndex(0);
           return;
         }
-        props.setCode(candidators[focusIndex].Code);
+        props.setID(candidators[focusIndex].ID);
         setFocusIndex(0);
       } else if (isActive && e.key === "ArrowUp") {
         e.preventDefault();
@@ -115,7 +115,7 @@ function CommandPanel(props: CommandPanelProps) {
                 }`}
               >
                 <div className={`px-4 py-2`}>
-                  {i} {c.Code} {c.Desc}
+                  {i} {c.ID.Code} {c.Desc}
                 </div>
               </div>
             );

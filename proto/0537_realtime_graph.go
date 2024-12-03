@@ -7,12 +7,12 @@ import (
 	"encoding/binary"
 )
 
-func (c *Client) RealtimeGraph(market models.MarketType, code string) (*RealtimeGraphResp, error) {
+func (c *Client) RealtimeGraph(id models.StockIdentity) (*RealtimeGraphResp, error) {
 	subject := &RealtimeGraph{}
 
 	subject.Req = &RealtimeGraphReq{
-		Market: market,
-		Code:   [6]byte{code[0], code[1], code[2], code[3], code[4], code[5]},
+		Market: id.MarketType,
+		Code:   id.CodeArray(),
 		R1:     [4]uint8{0x00, 0x00, 0x00, uint8(c.handShakeSeed)},
 	}
 

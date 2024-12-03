@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { proto } from "../../wailsjs/go/models";
+import { models, proto } from "../../wailsjs/go/models";
 import { TodayQuote } from "../../wailsjs/go/api/App";
 import * as d3 from "d3";
 import { LogInfo } from "../../wailsjs/runtime/runtime";
 import { formatPrice } from "./Viewer";
 
 type RealtimeGraphProps = {
-  code: string;
+  id: models.StockIdentity;
   realtimeData: proto.RealtimeInfoRespItem | undefined;
 };
 function RealtimeGraphProps(props: RealtimeGraphProps) {
@@ -32,14 +32,14 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
   }, [containerRef.current]);
 
   useEffect(() => {
-    if (!props.code) {
+    if (!props.id.Code) {
       return;
     }
-    TodayQuote(props.code).then((data) => {
+    TodayQuote(props.id).then((data) => {
       setData(data);
       setCursorX(data.length - 1);
     });
-  }, [props.code]);
+  }, [props.id]);
 
   const ml = 40;
   const mr = 20;
@@ -180,7 +180,7 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
     <div className="flex flex-col w-full h-full">
       <div className="flex flex-row space-x-2 grow-0">
         <div className="flex">分时图</div>
-        <div className="flex">{props.code}</div>
+        <div className="flex">{props.id.Code}</div>
         <div className="flex">
           现价 {formatPrice(data[cursorX]?.Price, 100)}
         </div>

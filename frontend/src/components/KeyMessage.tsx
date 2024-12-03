@@ -1,18 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { StockMeta, RealtimeInfo } from "../../wailsjs/go/api/App";
 import { api, models, proto } from "../../wailsjs/go/models";
 import { EventsOn, LogInfo } from "../../wailsjs/runtime/runtime";
-import { ticker } from "../Tools";
+import { idUniqString, ticker } from "../Tools";
 
 function KeyMessage() {
   const [data, setData] = useState<proto.RealtimeInfoRespItem[]>([]);
-  const [meta, setMeta] = useState<{ [key: string]: models.StockMetaItem }>({});
+  const [meta, updateMeta] = useReducer(
+    (state: Map<string, models.StockMetaItem>, data: models.StockMetaItem) => {
+      return new Map(state).set(idUniqString(data.ID), data);
+    },
+    new Map<string, models.StockMetaItem>()
+  );
   const [refreshAt, setRefreshAt] = useState(new Date());
-  const indexList = ["999999", "399001", "399006", "880863", "880774"];
+  const indexList = [
+    models.StockIdentity.createFrom({
+      MarketType: models.MarketType.上海,
+      Code: "999999",
+    }),
+    models.StockIdentity.createFrom({
+      MarketType: models.MarketType.深圳,
+      Code: "399001",
+    }),
+    models.StockIdentity.createFrom({
+      MarketType: models.MarketType.深圳,
+      Code: "399006",
+    }),
+    models.StockIdentity.createFrom({
+      MarketType: models.MarketType.上海,
+      Code: "880863",
+    }),
+    models.StockIdentity.createFrom({
+      MarketType: models.MarketType.上海,
+      Code: "880774",
+    }),
+  ];
 
   useEffect(() => {
     StockMeta(indexList).then((d) => {
-      return setMeta(d);
+      d.forEach((m) => {
+        updateMeta(m);
+      });
     });
   }, []);
   useEffect(() => {
@@ -20,14 +48,7 @@ function KeyMessage() {
       return;
     }
     const cancel = ticker(() => {
-      RealtimeInfo(
-        Object.entries(meta).map(([code, m]) => {
-          return proto.StockQuery.createFrom({
-            Market: m.Market,
-            Code: code,
-          });
-        })
-      ).then((d) => {
+      RealtimeInfo(indexList).then((d) => {
         setRefreshAt(new Date());
         setData(d.ItemList);
       });
@@ -58,7 +79,7 @@ function KeyMessage() {
           }`}
         >
           <div className="flex flex-col my-auto">
-            <div>{meta[d.Code]?.Desc}</div>
+            <div>{meta.get(idUniqString(d.ID))?.Desc}</div>
             <div>
               {((-d.YesterdayCloseDelta * 100.0) / d.CurrentPrice)
                 .toFixed(2)

@@ -67,12 +67,12 @@ func ParseBaseDBF(data []byte) (*models.BaseDBF, error) {
 			curDataStr := strings.Trim(strings.TrimSpace(string(curData)), "\x00")
 			switch DBF.ColMetaList[j].Name {
 			case "GPDM":
-				item.Code = string(data[offset+int(DBF.ColMetaList[j].Offset) : offset+int(DBF.ColMetaList[j].Offset+uint16(DBF.ColMetaList[j].Width))])
+				item.ID.Code = string(data[offset+int(DBF.ColMetaList[j].Offset) : offset+int(DBF.ColMetaList[j].Offset+uint16(DBF.ColMetaList[j].Width))])
 			case "SC":
 				if err != nil {
 					return nil, err
 				}
-				item.Market = models.MarketType(curDataStr[0] - '0')
+				item.ID.MarketType = models.MarketType(curDataStr[0] - '0')
 			case "GXRQ", "SSDATE", "DY", "HY":
 				if curDataStr == "" {
 					continue

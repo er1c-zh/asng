@@ -8,14 +8,14 @@ import (
 	"fmt"
 )
 
-func (c *Client) CandleStick(market models.MarketType, code string,
+func (c *Client) CandleStick(id models.StockIdentity,
 	periodType CandleStickPeriodType, cursor uint16) (*CandleStickResp, error) {
 	var err error
 	candleStick := &CandleStick{}
 	candleStick.SetDebug(c.ctx)
 	candleStick.Req = &CandleStickReq{
-		MarketType: market,
-		Code:       [6]byte{code[0], code[1], code[2], code[3], code[4], code[5]},
+		MarketType: id.MarketType,
+		Code:       id.CodeArray(),
 		Type:       periodType,
 		Unit:       0x0001,
 		Offset:     cursor,

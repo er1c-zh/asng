@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { proto } from "../../wailsjs/go/models";
+import { models, proto } from "../../wailsjs/go/models";
 import { CandleStick } from "../../wailsjs/go/api/App";
 import { LogInfo } from "../../wailsjs/runtime/runtime";
 import * as d3 from "d3";
 
 type CandleStickViewProps = {
-  code: string;
+  id: models.StockIdentity;
   period: proto.CandleStickPeriodType;
 };
 type CandleStickItem = {
@@ -93,10 +93,10 @@ function CandleStickView(props: CandleStickViewProps) {
   }, []);
 
   useEffect(() => {
-    if (props.code === "") {
+    if (props.id.Code === "") {
       return;
     }
-    CandleStick(props.code, props.period, cursor).then((d) => {
+    CandleStick(props.id, props.period, cursor).then((d) => {
       // setCursor(d.Cursor);
       let preFive: number[] = [];
       let preTen: number[] = [];
@@ -139,7 +139,7 @@ function CandleStickView(props: CandleStickViewProps) {
         })
       );
     });
-  }, [props.code]);
+  }, [props.id]);
 
   const ml = 40;
   const mr = 20;

@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"asng/models"
 	"bytes"
 	"context"
 	"encoding/binary"
@@ -31,15 +32,15 @@ func (c *Client) RegisterRealtimeConsumer(h RealtimeConsumer) {
 
 type RealtimeConsumer func(RealtimeInfoRespItem)
 
-func (c *Client) RealtimeInfo(stock []StockQuery) (*RealtimeInfoResp, error) {
+func (c *Client) RealtimeInfo(stock []models.StockIdentity) (*RealtimeInfoResp, error) {
 	return c.realtimeInfo(stock, false)
 }
 
-func (c *Client) RealtimeInfoSubscribe(stock []StockQuery) (*RealtimeInfoResp, error) {
+func (c *Client) RealtimeInfoSubscribe(stock []models.StockIdentity) (*RealtimeInfoResp, error) {
 	return c.realtimeInfo(stock, true)
 }
 
-func (c *Client) realtimeInfo(stock []StockQuery, subscribe bool) (*RealtimeInfoResp, error) {
+func (c *Client) realtimeInfo(stock []models.StockIdentity, subscribe bool) (*RealtimeInfoResp, error) {
 	realtime := &RealtimeInfo{}
 
 	realtime.SetDebug(c.ctx)
@@ -50,8 +51,9 @@ func (c *Client) realtimeInfo(stock []StockQuery, subscribe bool) (*RealtimeInfo
 	}
 	for _, s := range stock {
 		realtime.Req.ItemList = append(realtime.Req.ItemList, RealtimeInfoReqItem{
-			Market: s.Market,
-			Code:   [10]byte{s.Code[0], s.Code[1], s.Code[2], s.Code[3], s.Code[4], s.Code[5]},
+			Market: s.MarketType.Uint8(),
+			Code:   s.CodeArray(),
+			Flags:  [4]byte{0x00, 0x00, 0x00, 0x00},
 		})
 	}
 
@@ -77,7 +79,8 @@ type RealtimeInfoReq struct {
 
 type RealtimeInfoReqItem struct {
 	Market uint8
-	Code   [10]byte
+	Code   [6]byte
+	Flags  [4]byte
 }
 
 type RealtimeInfoResp struct {
@@ -86,6 +89,8 @@ type RealtimeInfoResp struct {
 	ItemList []RealtimeInfoRespItem
 }
 type RealtimeInfoRespItem struct {
+	ID models.StockIdentity
+
 	StockQuery
 	CurrentPrice        int64
 	YesterdayCloseDelta int64
@@ -228,6 +233,8 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 			return err
 		}
 	}
+
+	obj.ID = obj.StockQuery.ToID()
 
 	return nil
 }

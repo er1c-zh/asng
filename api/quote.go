@@ -6,12 +6,8 @@ import (
 	"fmt"
 )
 
-func (a *App) CandleStick(code string, period proto.CandleStickPeriodType, cursor uint16) *proto.CandleStickResp {
-	meta, ok := a.stockMetaMap[code]
-	if !ok {
-		return nil
-	}
-	resp, err := a.cli.CandleStick(meta.Market, code, period, cursor)
+func (a *App) CandleStick(id models.StockIdentity, period proto.CandleStickPeriodType, cursor uint16) *proto.CandleStickResp {
+	resp, err := a.cli.CandleStick(id, period, cursor)
 	if err != nil {
 		a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("candle stick failed: %s", err.Error())})
 		return nil
@@ -19,12 +15,8 @@ func (a *App) CandleStick(code string, period proto.CandleStickPeriodType, curso
 	return resp
 }
 
-func (a *App) TodayQuote(code string) []proto.QuoteFrame {
-	meta, ok := a.stockMetaMap[code]
-	if !ok {
-		return nil
-	}
-	resp, err := a.cli.RealtimeGraph(meta.Market, code)
+func (a *App) TodayQuote(id models.StockIdentity) []proto.QuoteFrame {
+	resp, err := a.cli.RealtimeGraph(id)
 	if err != nil {
 		a.LogProcessError(models.ProcessInfo{Msg: fmt.Sprintf("today quote failed: %s", err.Error())})
 		return nil
@@ -32,7 +24,7 @@ func (a *App) TodayQuote(code string) []proto.QuoteFrame {
 	return resp.List
 }
 
-func (a *App) RealtimeInfo(req []proto.StockQuery) *proto.RealtimeInfoResp {
+func (a *App) RealtimeInfo(req []models.StockIdentity) *proto.RealtimeInfoResp {
 	resp, err := a.cli.RealtimeInfo(req)
 	if err != nil {
 		return nil

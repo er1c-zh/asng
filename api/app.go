@@ -23,7 +23,7 @@ type App struct {
 
 	// data in memory
 	stockMeta    *models.StockMetaAll
-	stockMetaMap map[string]*models.StockMetaItem // WARN: read-only after init
+	stockMetaMap map[models.StockIdentity]*models.StockMetaItem // WARN: read-only after init
 
 	cli *proto.Client
 
@@ -149,9 +149,9 @@ func (a *App) asyncInit() {
 					return
 				}
 			}
-			a.stockMetaMap = make(map[string]*models.StockMetaItem, len(a.stockMeta.StockList))
+			a.stockMetaMap = make(map[models.StockIdentity]*models.StockMetaItem, len(a.stockMeta.StockList))
 			for _, v := range a.stockMeta.StockList {
-				a.stockMetaMap[v.Code] = &v
+				a.stockMetaMap[v.ID] = &v
 			}
 			a.LogProcessInfo(models.ProcessInfo{Msg: fmt.Sprintf("load stock meta cost: %d ms", time.Since(t0).Milliseconds())})
 		}
@@ -188,11 +188,11 @@ func (a *App) asyncInit() {
 				return
 			}
 			for _, v := range dbf.Data {
-				if a.stockMetaMap[v.Code] == nil {
+				if a.stockMetaMap[v.ID] == nil {
 					continue
 				}
 				runtime.LogDebugf(a.ctx, "base.dbf item: %+v", v)
-				a.stockMetaMap[v.Code].BaseDBFItem = &v
+				a.stockMetaMap[v.ID].BaseDBFItem = &v
 			}
 			a.LogProcessInfo(models.ProcessInfo{Msg: fmt.Sprintf("load base.dbf cost: %d ms", time.Since(t0).Milliseconds())})
 		}
