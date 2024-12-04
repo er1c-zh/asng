@@ -48,6 +48,23 @@ const (
 	CandleStickPeriodType_1Min  CandleStickPeriodType = 7
 )
 
+func (cspt CandleStickPeriodType) TimeType() TDXTimeType {
+	switch cspt {
+	case CandleStickPeriodType_5Min,
+		CandleStickPeriodType_15Min,
+		CandleStickPeriodType_30Min,
+		CandleStickPeriodType_1Hour,
+		CandleStickPeriodType_1Min:
+		return TDXTimeTypeCompressedTime
+	case CandleStickPeriodType_Day,
+		CandleStickPeriodType_Week,
+		CandleStickPeriodType_Month:
+		return TDXTimeTypeYYYYMMDD
+	default:
+		panic("invalid period type")
+	}
+}
+
 type CandleStickReq struct {
 	MarketType models.MarketType
 	Code       [6]byte
@@ -101,7 +118,7 @@ func (c *CandleStick) UnmarshalResp(ctx context.Context, body []byte) error {
 	priceDelta := int64(0)
 	for i := 0; i < int(c.Resp.Size); i += 1 {
 		item := CandleStickItem{}
-		y, m, d, h, M, err := ReadTDXTime(body, &cursor, c.Req.Type)
+		y, m, d, h, M, err := ReadTDXTime(body, &cursor, c.Req.Type.TimeType())
 		if err != nil {
 			return err
 		}

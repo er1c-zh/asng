@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
@@ -163,13 +164,16 @@ func ReadTDXString(b []byte, cursor *int, fixedLength int) (string, error) {
 	return strings.TrimRight(string(nameUtf8Buf), "\x00"), nil
 }
 
-func ReadTDXTime(b []byte, pos *int, t CandleStickPeriodType) (year int, month int, day int, hour int, minute int, err error) {
+type TDXTimeType uint8
+
+const (
+	TDXTimeTypeCompressedTime TDXTimeType = 0
+	TDXTimeTypeYYYYMMDD       TDXTimeType = 1
+)
+
+func ReadTDXTime(b []byte, pos *int, t TDXTimeType) (year int, month int, day int, hour int, minute int, err error) {
 	switch t {
-	case CandleStickPeriodType_5Min,
-		CandleStickPeriodType_15Min,
-		CandleStickPeriodType_30Min,
-		CandleStickPeriodType_1Hour,
-		CandleStickPeriodType_1Min:
+	case TDXTimeTypeCompressedTime:
 		var zipday, tminutes uint16
 		zipday, err = ReadInt(b, pos, zipday)
 		if err != nil {
@@ -185,9 +189,8 @@ func ReadTDXTime(b []byte, pos *int, t CandleStickPeriodType) (year int, month i
 		hour = int(tminutes / 60)
 		minute = int(tminutes % 60)
 		return
-	case CandleStickPeriodType_Day,
-		CandleStickPeriodType_Week,
-		CandleStickPeriodType_Month:
+	case TDXTimeTypeYYYYMMDD:
+		// yyyymmdd
 		var zipday uint32
 		zipday, err = ReadInt(b, pos, zipday)
 		year = int(zipday / 10000)
@@ -199,6 +202,25 @@ func ReadTDXTime(b []byte, pos *int, t CandleStickPeriodType) (year int, month i
 		return
 	}
 	return
+}
+
+func FormatTDXDate(t0 time.Time, t TDXTimeType) uint32 {
+	switch t {
+	case TDXTimeTypeCompressedTime:
+		var day uint16
+		y, m, d := t0.Date()
+		day |= uint16(y-2004) << 11
+		day += uint16(m * 100)
+		day += uint16(d)
+		panic("implement me!")
+	case TDXTimeTypeYYYYMMDD:
+		y, m, d := t0.Date()
+		// FIXME: time.Date() return month as a time.Month,
+		// so this type assert worked depend on time.Month defined by iota.
+		return uint32(y*10000 + int(m)*100 + d)
+	default:
+		panic("unsupported TDXTimeType")
+	}
 }
 
 func GenerateMACAddr() ([6]byte, error) {

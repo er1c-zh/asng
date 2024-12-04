@@ -125,19 +125,26 @@ func testSubscribe() {
 	// err = cli.Nop(0x0547, 0x0029, "0100013630303034388ab00100") // subscribe
 	// err = cli.Nop(0x0FC5, 0x1C00, "010036303030343800003200") // subscribe
 	// err = cli.Nop(0x0FC5, 0x0100, "010036303030343800008403") // subscribe
+	// err = cli.Nop(0x0FC6, 0x0101, "E9DA3401010036303030343800008403") // subscribe
 
 	// resp, err := cli.RealtimeInfoSubscribe([]proto.StockQuery{
 	// 	{Market: uint8(models.MarketSH), Code: "600000"},
 	// 	{Market: uint8(models.MarketSZ), Code: "300050"},
 	// })
 	// resp, err := cli.RealtimeInfo([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "600000"}})
-	resp, err := cli.Transaction(proto.StockQuery{Market: uint8(models.MarketSH), Code: "600000"}, true)
+	resp, err := cli.TXToday(models.StockIdentity{
+		MarketType: models.MarketSH, Code: "600000",
+	})
+	// resp, err := cli.TXRealtime(models.StockIdentity{
+	// MarketType: models.MarketSH, Code: "600000"})
+	// resp, err := cli.CandleStick(models.StockIdentity{MarketType: models.MarketSH, Code: "600000"}, proto.CandleStickPeriodType_Day, 0)
 	if err != nil {
 		fmt.Printf("error:%s", err)
 		return
 	}
 	j, _ := json.MarshalIndent(resp, "", "  ")
 	fmt.Printf("%s\n", j)
+	fmt.Printf("%d %v\n", len(resp), resp[0])
 
 	// resp, err := cli.RealtimeGraph(models.MarketSH, "600000")
 	// if err != nil {
