@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, models, proto } from "../../wailsjs/go/models";
 import { TodayQuote } from "../../wailsjs/go/api/App";
 import * as d3 from "d3";
@@ -9,7 +9,7 @@ type RealtimeGraphProps = {
   priceLine: models.QuoteFrameDataSingleValue[];
 };
 
-function RealtimeGraphProps(props: RealtimeGraphProps) {
+function RealtimeGraph(props: RealtimeGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -46,11 +46,14 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
     set.push(Math.max(...props.priceLine.map((p) => p.Value / p.Scale)));
     set.push(Math.min(...props.priceLine.map((p) => p.Value / p.Scale)));
 
-    console.log(set);
-
     setPriceRange([Math.min(...set), Math.max(...set)]);
   }, [props.priceLine]);
 
+  const [scale, setScale] = useState({
+    X: d3.scaleTime(),
+    Y: d3.scaleLinear(),
+  });
+  // bulid scale
   useEffect(() => {
     const widthPer5Min = (dimensions.width - ml - mr) / 50;
     const xScale = d3
@@ -75,11 +78,15 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
       .scaleLinear()
       .domain(priceRange)
       .range([dimensions.height - mb, mt]);
+    setScale({ X: xScale, Y: yScale });
+  }, [dimensions, priceRange]);
 
+  // draw axis
+  useEffect(() => {
     d3.select(xAxisRef.current!)
       .call(
         d3
-          .axisTop(xScale)
+          .axisTop(scale.X)
           .tickSize(dimensions.height - mt - mb)
           .tickValues([
             new Date().setHours(9, 15, 0, 0), // TODO: d3 don't show first value, is this d3 bug?
@@ -111,7 +118,7 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
     d3.select(yAxisRef.current!)
       .call(
         d3
-          .axisRight(yScale)
+          .axisRight(scale.Y)
           .tickSize(dimensions.width - ml - mr)
           .tickFormat(d3.format(".2f"))
       )
@@ -123,28 +130,109 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
       )
       .call((g) => g.selectAll(".tick text").attr("x", -32).attr("dy", 2))
       .call((g) => g.select(".domain").remove());
+  }, [dimensions, scale]);
 
-    const linePrice = d3
+  const lineBuilder = useCallback(
+    d3
       .line<models.QuoteFrameDataSingleValue>()
-      .x((d) => xScale(new Date(d.TimeInMs)))
-      .y((d) => yScale(d.Value / d.Scale));
+      .x((d) => scale.X(new Date(d.TimeInMs)))
+      .y((d) => scale.Y(d.Value / d.Scale)),
+    [scale]
+  );
 
-    d3.select(lineGroupRef.current!)
-      .append("path")
-      .attr("fill", "none")
-      .attr("stroke", "white")
-      .attr("stroke-width", 0.5)
-      .attr("d", linePrice(props.priceLine));
-
+  // draw price line
+  const pricePathRef = useRef<SVGLineElement>(null);
+  useEffect(() => {
+    if (!lineBuilder) {
+      return;
+    }
+    d3.select(pricePathRef.current).attr("d", lineBuilder(props.priceLine));
     return () => {
-      d3.select(lineGroupRef.current!).selectAll("*").remove();
+      d3.select(pricePathRef.current).attr("d", "");
     };
-  }, [props.priceLine, priceRange]);
+  }, [lineBuilder, props.priceLine, pricePathRef.current]);
+
+  // draw crosshair
+  const crosshairRef = useRef<SVGGElement>(null);
+  const crosshairXRef = useRef<SVGLineElement>(null);
+  const crosshairYRef = useRef<SVGLineElement>(null);
+  const [curPos, setCurPos] = useState([0, 0]);
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    d3.select(svgRef.current!)
+      .on("mousemove", (e) => {
+        const [x, y] = d3.pointer(e);
+        setCurPos([x, y]);
+      })
+      .on("mouseenter", () => {
+        setFocused(true);
+      })
+      .on("mouseleave", () => {
+        setFocused(false);
+      });
+  }, [svgRef.current, crosshairRef.current]);
+
+  useEffect(() => {
+    if (!focused) {
+      return;
+    }
+    const [x, y] = curPos;
+    if (
+      x < ml ||
+      x > dimensions.width - mr ||
+      y < mt ||
+      y > dimensions.height - mb
+    ) {
+      d3.select(crosshairRef.current!).attr("visibility", "hidden");
+      return;
+    } else {
+      d3.select(crosshairRef.current!).attr("visibility", "");
+    }
+    d3.select(crosshairXRef.current!)
+      .attr("x1", x)
+      .attr("y1", mt)
+      .attr("x2", x)
+      .attr("y2", dimensions.height - mb);
+    d3.select(crosshairYRef.current!)
+      .attr("x1", ml)
+      .attr("y1", y)
+      .attr("x2", dimensions.width - mr)
+      .attr("y2", y);
+  }, [
+    curPos,
+    crosshairRef.current,
+    crosshairXRef.current,
+    crosshairYRef.current,
+    dimensions,
+    scale,
+    focused,
+  ]);
+
+  const [frame, setFrame] = useState<models.QuoteFrameDataSingleValue>();
+  // set current frame
+  useEffect(() => {
+    if (!focused) {
+      setFrame(props.priceLine[0] ? props.priceLine[0] : undefined);
+      return;
+    }
+    const curXInMilliSec = scale.X.invert(curPos[0]).getTime();
+    let minDelta = curXInMilliSec;
+    let minDeltaIndex = 0;
+    props.priceLine.forEach((p, i) => {
+      if (Math.abs(p.TimeInMs - curXInMilliSec) < minDelta) {
+        minDelta = Math.abs(p.TimeInMs - curXInMilliSec);
+        minDeltaIndex = i;
+      }
+    });
+    setFrame(props.priceLine[minDeltaIndex]);
+  }, [curPos, scale, focused, props.priceLine]);
 
   return (
     <div className="flex flex-col w-full h-full">
       <div className="flex flex-row space-x-2 grow-0">
         <div className="flex">分时图 {props.priceLine.length}</div>
+        <div>{frame ? new Date(frame.TimeInMs).toLocaleTimeString() : ""}</div>
+        <div>{frame ? (frame.Value / frame.Scale).toFixed(2) : ""}</div>
       </div>
       <div ref={containerRef} className="flex grow">
         <svg
@@ -157,11 +245,22 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
             transform={`translate(0, ${dimensions.height - mb})`}
           />
           <g ref={yAxisRef} transform={`translate(${ml}, 0)`} />
-          <g ref={lineGroupRef} />
+          <g ref={lineGroupRef}>
+            <path
+              ref={pricePathRef}
+              fill="none"
+              stroke="white"
+              strokeWidth={0.5}
+            />
+          </g>
+          <g ref={crosshairRef} stroke="yellow">
+            <line ref={crosshairXRef} strokeWidth={0.5} />
+            <line ref={crosshairYRef} strokeWidth={0.5} />
+          </g>
         </svg>
       </div>
     </div>
   );
 }
 
-export default RealtimeGraphProps;
+export default RealtimeGraph;

@@ -26,13 +26,17 @@ function Viewer(props: ViewerProps) {
   const [priceLine, updatePriceLine] = useReducer(
     (
       state: models.QuoteFrameDataSingleValue[],
-      data: { append: boolean; data: models.QuoteFrameDataSingleValue[] }
+      data: { action: string; data: models.QuoteFrameDataSingleValue[] }
     ) => {
-      if (data.append) {
-        // TODO merge
-        return state.concat(data.data);
-      } else {
-        return data.data.concat(state);
+      switch (data.action) {
+        case "init":
+          return data.data.concat(state);
+        case "append":
+          return state.concat(data.data);
+        case "reset":
+          return [];
+        default:
+          return state;
       }
     },
     []
@@ -52,6 +56,10 @@ function Viewer(props: ViewerProps) {
     if (!meta) {
       return;
     }
+    updatePriceLine({
+      action: "reset",
+      data: [],
+    });
     const cancel = EventsOn(
       api.MsgKey.subscribeBroadcast,
       (d: api.QuoteSubscribeResp) => {
@@ -60,7 +68,7 @@ function Viewer(props: ViewerProps) {
         }
         setDataWrapper(d.RealtimeInfo);
         updatePriceLine({
-          append: true,
+          action: "append",
           data: [d.Frame],
         });
         setRefreshAt(new Date());
@@ -89,7 +97,7 @@ function Viewer(props: ViewerProps) {
         return;
       }
       updatePriceLine({
-        append: false,
+        action: "init",
         data: d.Price,
       });
     });

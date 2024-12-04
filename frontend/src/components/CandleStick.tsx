@@ -101,6 +101,9 @@ function CandleStickView(props: CandleStickViewProps) {
       let preFive: number[] = [];
       let preTen: number[] = [];
       let preTwentyFive: number[] = [];
+      if (!d.ItemList) {
+        return;
+      }
       setData(
         d.ItemList.map((d) => {
           preFive.push(d.Close);
