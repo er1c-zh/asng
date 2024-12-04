@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { api, models, proto } from "../../wailsjs/go/models";
 import CandleStickView from "./CandleStick";
 import RealtimeGraph from "./RealtimeGraph";
 import { StockMeta, Subscribe, TodayQuote } from "../../wailsjs/go/api/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { ticker } from "../Tools";
+import { retry } from "rxjs";
+import { Virtuoso } from "react-virtuoso";
 
 type ViewerProps = {
   id: models.StockIdentity;
@@ -21,7 +23,25 @@ function Viewer(props: ViewerProps) {
     [dataList]
   );
   const [meta, setMeta] = useState<models.StockMetaItem>();
-  const [transaction, setTransaction] = useState<number[][]>([]);
+  const [transaction, updateTransaction] = useReducer(
+    (
+      state: models.QuoteFrameDataSingleValue[],
+      data: { action: string; data: models.QuoteFrameDataSingleValue[] }
+    ) => {
+      switch (data.action) {
+        case "init":
+          return data.data.concat(state);
+        case "append":
+          return state.concat(data.data);
+        case "reset":
+          return [];
+        default:
+          return state;
+      }
+    },
+    []
+  );
+
   const [refreshAt, setRefreshAt] = useState(new Date());
   const [priceLine, updatePriceLine] = useReducer(
     (
@@ -60,6 +80,10 @@ function Viewer(props: ViewerProps) {
       action: "reset",
       data: [],
     });
+    updateTransaction({
+      action: "reset",
+      data: [],
+    });
     const cancel = EventsOn(
       api.MsgKey.subscribeBroadcast,
       (d: api.QuoteSubscribeResp) => {
@@ -69,7 +93,11 @@ function Viewer(props: ViewerProps) {
         setDataWrapper(d.RealtimeInfo);
         updatePriceLine({
           action: "append",
-          data: [d.Frame],
+          data: [d.PriceFrame],
+        });
+        updateTransaction({
+          action: "append",
+          data: [d.VolumeFrame],
         });
         setRefreshAt(new Date());
       }
@@ -84,8 +112,8 @@ function Viewer(props: ViewerProps) {
     }
     const cancel = ticker(() => {
       Subscribe([meta.ID]).then((d) => {
-        if (d.ItemList[0]?.Code === meta.ID.Code) {
-          setData(d.ItemList[0]!);
+        if (d[0]?.RealtimeInfo.Code === meta.ID.Code) {
+          setData(d[0].RealtimeInfo);
           setRefreshAt(new Date());
         }
       });
@@ -99,6 +127,10 @@ function Viewer(props: ViewerProps) {
       updatePriceLine({
         action: "init",
         data: d.Price,
+      });
+      updateTransaction({
+        action: "init",
+        data: d.Volume,
       });
     });
     return () => {
@@ -187,21 +219,7 @@ function Viewer(props: ViewerProps) {
         </div>
         <div className="flex flex-col w-1/2 grow">
           <div className="flex flex-col w-1/3 grow overflow-y-scroll">
-            {dataList.map((d, i, a) => {
-              return (
-                <div key={d.TickNo} className="flex flex-row">
-                  <div className="grow-0">
-                    {new Date(d.TickMilliSecTimestamp).toLocaleTimeString()}
-                  </div>
-                  <div className="flex flex-grow"></div>
-                  <div className="grow-0 pr-4">
-                    {i > 0
-                      ? d.TotalVolume - a[i - 1].TotalVolume
-                      : d.TotalVolume}
-                  </div>
-                </div>
-              );
-            })}
+            <TxViewer priceLine={priceLine} volumeLine={transaction} />
           </div>
         </div>
       </div>
@@ -210,6 +228,68 @@ function Viewer(props: ViewerProps) {
 }
 
 export default Viewer;
+
+type TxViewerProps = {
+  priceLine: models.QuoteFrameDataSingleValue[];
+  volumeLine: models.QuoteFrameDataSingleValue[];
+};
+
+function TxViewer(props: TxViewerProps) {
+  const renderCount = 50;
+  const [tx, setTx] = useState<
+    {
+      price: models.QuoteFrameDataSingleValue;
+      volume: models.QuoteFrameDataSingleValue;
+    }[]
+  >();
+
+  useEffect(() => {
+    if (props.priceLine.length == props.volumeLine.length) {
+      setTx(
+        props.priceLine.map((d, i) => {
+          return {
+            price: d,
+            volume: props.volumeLine[i],
+          };
+        })
+      );
+    }
+  }, [props.priceLine, props.volumeLine]);
+
+  if (!props.priceLine || !props.volumeLine) {
+    return <div>Loading...</div>;
+  }
+  if (props.priceLine.length != props.volumeLine.length) {
+    console.error("Price line and volume line length not equal");
+    console.log(props.priceLine.length, props.volumeLine.length);
+    return <div>Price line and volume line length not equal</div>;
+  }
+
+  return (
+    <Virtuoso
+      style={{ height: "100%" }}
+      data={tx}
+      topItemCount={1}
+      itemContent={(_, d) => {
+        return (
+          <div key={d.price.TimeInMs} className="flex flex-row bg-gray-900">
+            <div className="grow-0">
+              {new Date(d.price.TimeInMs).toLocaleTimeString()}({d.volume.Value}
+              )
+            </div>
+            <div className="flex flex-grow"></div>
+            <div className="grow-0 pr-4">
+              {formatAmount(
+                (d.volume.Value /* 手 */ * 100 * d.price.Value) / d.price.Scale
+              )}
+              元
+            </div>
+          </div>
+        );
+      }}
+    />
+  );
+}
 
 type LabelGroupProps = {
   Title: string;

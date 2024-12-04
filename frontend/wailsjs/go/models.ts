@@ -8,7 +8,8 @@ export namespace api {
 	}
 	export class QuoteSubscribeResp {
 	    RealtimeInfo: proto.RealtimeInfoRespItem;
-	    Frame: models.QuoteFrameDataSingleValue;
+	    PriceFrame: models.QuoteFrameDataSingleValue;
+	    VolumeFrame: models.QuoteFrameDataSingleValue;
 	
 	    static createFrom(source: any = {}) {
 	        return new QuoteSubscribeResp(source);
@@ -17,7 +18,8 @@ export namespace api {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.RealtimeInfo = this.convertValues(source["RealtimeInfo"], proto.RealtimeInfoRespItem);
-	        this.Frame = this.convertValues(source["Frame"], models.QuoteFrameDataSingleValue);
+	        this.PriceFrame = this.convertValues(source["PriceFrame"], models.QuoteFrameDataSingleValue);
+	        this.VolumeFrame = this.convertValues(source["VolumeFrame"], models.QuoteFrameDataSingleValue);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

@@ -65,10 +65,10 @@ func (a *App) TodayQuote(id models.StockIdentity) TodayQuoteResp {
 		// 	QuoteFrame: f.Clone().SetType(models.QuoteTypeLine),
 		// 	Value:      item.AvgPrice,
 		// })
-		// resp.Volume = append(resp.Volume, models.QuoteFrameDataSingleValue{
-		// 	QuoteFrame: f.Clone().SetType(models.QuoteTypeBar),
-		// 	Value:      item.Volume,
-		// })
+		resp.Volume = append(resp.Volume, models.QuoteFrameDataSingleValue{
+			QuoteFrame: f.Clone().SetType(models.QuoteTypeBar),
+			Value:      item.Volume,
+		})
 	}
 	return resp
 }

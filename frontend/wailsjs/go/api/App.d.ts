@@ -26,6 +26,6 @@ export function ServerStatus():Promise<models.ServerStatus>;
 
 export function StockMeta(arg1:Array<models.StockIdentity>):Promise<Array<models.StockMetaItem>>;
 
-export function Subscribe(arg1:Array<models.StockIdentity>):Promise<proto.RealtimeInfoResp>;
+export function Subscribe(arg1:Array<models.StockIdentity>):Promise<Array<api.QuoteSubscribeResp>>;
 
 export function TodayQuote(arg1:models.StockIdentity):Promise<api.TodayQuoteResp>;

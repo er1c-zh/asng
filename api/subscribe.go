@@ -34,7 +34,8 @@ func NewQuoteSubscripition(app *App) *QuoteSubscripition {
 
 type QuoteSubscribeResp struct {
 	RealtimeInfo proto.RealtimeInfoRespItem
-	Frame        models.QuoteFrameDataSingleValue
+	PriceFrame   models.QuoteFrameDataSingleValue
+	VolumeFrame  models.QuoteFrameDataSingleValue
 }
 
 func (a *QuoteSubscripition) Start() {
@@ -44,23 +45,34 @@ func (a *QuoteSubscripition) Start() {
 	})
 }
 
-func (a *App) Subscribe(req []models.StockIdentity) *proto.RealtimeInfoResp {
+func (a *App) Subscribe(req []models.StockIdentity) []QuoteSubscribeResp {
 	resp, err := a.cli.RealtimeInfoSubscribe(req)
 	if err != nil {
 		return nil
 	}
-	return resp
+	result := make([]QuoteSubscribeResp, 0)
+	for _, v := range resp.ItemList {
+		result = append(result, a.generateQuoteSubscribeResp(v))
+	}
+	return result
 }
 
 func (a *App) generateQuoteSubscribeResp(d proto.RealtimeInfoRespItem) QuoteSubscribeResp {
 	return QuoteSubscribeResp{
 		RealtimeInfo: d,
-		Frame: models.QuoteFrameDataSingleValue{
+		PriceFrame: models.QuoteFrameDataSingleValue{
 			QuoteFrame: models.QuoteFrame{
 				TimeInMs: d.TickMilliSecTimestamp,
 			},
 			Value: d.CurrentPrice,
 			Scale: int64(a.stockMetaMap[d.ID].Scale),
+		},
+		VolumeFrame: models.QuoteFrameDataSingleValue{
+			QuoteFrame: models.QuoteFrame{
+				TimeInMs: d.TickMilliSecTimestamp,
+			},
+			Value: d.CurrentVolume,
+			Scale: 1,
 		},
 	}
 }

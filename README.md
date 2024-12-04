@@ -20,7 +20,7 @@ Preview:
 - [ ] realtime
     - [ ] base feature
     - [ ] base information
-    - [ ] crosshair
+    - [x] crosshair
     - [ ] aggregate transaction and show on graph
 - [ ] candle stick
     - [x] base feature

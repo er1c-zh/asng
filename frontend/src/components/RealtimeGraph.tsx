@@ -143,7 +143,7 @@ function RealtimeGraph(props: RealtimeGraphProps) {
   // draw price line
   const pricePathRef = useRef<SVGLineElement>(null);
   useEffect(() => {
-    if (!lineBuilder) {
+    if (!lineBuilder || props.priceLine.length == 0) {
       return;
     }
     d3.select(pricePathRef.current).attr("d", lineBuilder(props.priceLine));
