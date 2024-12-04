@@ -83,3 +83,10 @@ type BaseDBFRow struct {
 	ID   StockIdentity
 	Data map[string]any
 }
+
+type BaseReq struct{}
+
+type BaseResp struct {
+	Code    int
+	Message string
+}

@@ -1,21 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { api, models, proto } from "../../wailsjs/go/models";
 import CandleStickView from "./CandleStick";
 import RealtimeGraph from "./RealtimeGraph";
-import { StockMeta, Subscribe } from "../../wailsjs/go/api/App";
+import { StockMeta, Subscribe, TodayQuote } from "../../wailsjs/go/api/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { ticker } from "../Tools";
 
 type ViewerProps = {
   id: models.StockIdentity;
 };
+
 function Viewer(props: ViewerProps) {
   const [data, setData] = useState<proto.RealtimeInfoRespItem>();
   const [dataList, setDataList] = useState<proto.RealtimeInfoRespItem[]>([]);
-  const [meta, setMeta] = useState<models.StockMetaItem>();
-  const [transaction, setTransaction] = useState<number[][]>([]);
-  const [refreshAt, setRefreshAt] = useState(new Date());
-
   const setDataWrapper = useCallback(
     (d: proto.RealtimeInfoRespItem) => {
       setData(d);
@@ -23,7 +20,25 @@ function Viewer(props: ViewerProps) {
     },
     [dataList]
   );
+  const [meta, setMeta] = useState<models.StockMetaItem>();
+  const [transaction, setTransaction] = useState<number[][]>([]);
+  const [refreshAt, setRefreshAt] = useState(new Date());
+  const [priceLine, updatePriceLine] = useReducer(
+    (
+      state: models.QuoteFrameDataSingleValue[],
+      data: { append: boolean; data: models.QuoteFrameDataSingleValue[] }
+    ) => {
+      if (data.append) {
+        // TODO merge
+        return state.concat(data.data);
+      } else {
+        return data.data.concat(state);
+      }
+    },
+    []
+  );
 
+  // 0. get meta
   useEffect(() => {
     StockMeta([props.id]).then((d) => {
       if (d.length > 0) {
@@ -32,6 +47,7 @@ function Viewer(props: ViewerProps) {
     });
   }, [props.id]);
 
+  // 1. listen on realtime broadcast
   useEffect(() => {
     if (!meta) {
       return;
@@ -49,6 +65,7 @@ function Viewer(props: ViewerProps) {
     return cancel;
   }, [meta, setDataWrapper]);
 
+  // 2. fetch current data and subscribe
   useEffect(() => {
     if (!meta) {
       return;
@@ -61,6 +78,17 @@ function Viewer(props: ViewerProps) {
         }
       });
     }, 15 * 1000);
+
+    TodayQuote(meta.ID).then((d) => {
+      if (d.Code) {
+        console.log(d);
+        return;
+      }
+      updatePriceLine({
+        append: false,
+        data: d.Price,
+      });
+    });
     return () => {
       cancel();
     };
@@ -142,7 +170,7 @@ function Viewer(props: ViewerProps) {
             />
           </div>
           <div className="flex w-full h-1/2 min-w-full">
-            <RealtimeGraph id={props.id} realtimeData={data} />
+            <RealtimeGraph priceLine={priceLine} />
           </div>
         </div>
         <div className="flex flex-col w-1/2 grow">

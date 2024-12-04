@@ -40,3 +40,47 @@ func (s StockIdentity) FixedSizeWithUint8MarketType() StockIdentityFixedSizeWith
 		Code:       s.CodeArray(),
 	}
 }
+
+type QuoteType uint16
+
+const (
+	QuoteTypeUnknown     QuoteType = 0
+	QuoteTypeLine        QuoteType = 1
+	QuoteTypeCandleStick QuoteType = 2
+	QuoteTypeBar         QuoteType = 3
+)
+
+type QuoteFrame struct {
+	Type         QuoteType
+	TimeInMs     int64 // align to span start
+	TimeSpanInMs int64
+}
+
+func (f QuoteFrame) Clone() QuoteFrame {
+	return f
+}
+func (f QuoteFrame) SetType(t QuoteType) QuoteFrame {
+	f.Type = t
+	return f
+}
+
+type QuoteFrameDataSingleValue struct {
+	QuoteFrame
+	Value int64
+	Scale int64
+}
+
+type QuoteFrameDataCandleStick struct {
+	QuoteFrame
+	Open  int64
+	High  int64
+	Low   int64
+	Close int64
+}
+
+type QuoteFrameDataTx struct {
+	QuoteFrame
+	Price  int64
+	Volume int64
+	Amount int64
+}

@@ -38,6 +38,44 @@ export namespace api {
 		    return a;
 		}
 	}
+	export class TodayQuoteResp {
+	    Code: number;
+	    Message: string;
+	    Price: models.QuoteFrameDataSingleValue[];
+	    AvgPrice: models.QuoteFrameDataSingleValue[];
+	    Volume: models.QuoteFrameDataSingleValue[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TodayQuoteResp(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Code = source["Code"];
+	        this.Message = source["Message"];
+	        this.Price = this.convertValues(source["Price"], models.QuoteFrameDataSingleValue);
+	        this.AvgPrice = this.convertValues(source["AvgPrice"], models.QuoteFrameDataSingleValue);
+	        this.Volume = this.convertValues(source["Volume"], models.QuoteFrameDataSingleValue);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
 }
 
@@ -106,6 +144,26 @@ export namespace models {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Type = source["Type"];
 	        this.Msg = source["Msg"];
+	    }
+	}
+	export class QuoteFrameDataSingleValue {
+	    Type: number;
+	    TimeInMs: number;
+	    TimeSpanInMs: number;
+	    Value: number;
+	    Scale: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new QuoteFrameDataSingleValue(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Type = source["Type"];
+	        this.TimeInMs = source["TimeInMs"];
+	        this.TimeSpanInMs = source["TimeSpanInMs"];
+	        this.Value = source["Value"];
+	        this.Scale = source["Scale"];
 	    }
 	}
 	export class ServerStatus {
@@ -253,22 +311,6 @@ export namespace proto {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Price = source["Price"];
-	        this.Volume = source["Volume"];
-	    }
-	}
-	export class QuoteFrame {
-	    Price: number;
-	    AvgPrice: number;
-	    Volume: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new QuoteFrame(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Price = source["Price"];
-	        this.AvgPrice = source["AvgPrice"];
 	        this.Volume = source["Volume"];
 	    }
 	}

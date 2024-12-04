@@ -28,4 +28,4 @@ export function StockMeta(arg1:Array<models.StockIdentity>):Promise<Array<models
 
 export function Subscribe(arg1:Array<models.StockIdentity>):Promise<proto.RealtimeInfoResp>;
 
-export function TodayQuote(arg1:models.StockIdentity):Promise<Array<proto.QuoteFrame>>;
+export function TodayQuote(arg1:models.StockIdentity):Promise<api.TodayQuoteResp>;
