@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"asng/utils"
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
@@ -169,11 +170,12 @@ type TDXTimeType uint8
 const (
 	TDXTimeTypeCompressedTime TDXTimeType = 0
 	TDXTimeTypeYYYYMMDD       TDXTimeType = 1
+	TDXTimeTypeHHMMSS         TDXTimeType = 2
 )
 
 func ReadTDXTime(b []byte, pos *int, t TDXTimeType) (time.Time, error) {
 	var err error
-	t0 := time.Unix(0, 0)
+	t0 := utils.GetTodayWithOffset(0, 0, 0)
 	switch t {
 	case TDXTimeTypeCompressedTime:
 		var zipday, tminutes uint16
@@ -197,10 +199,24 @@ func ReadTDXTime(b []byte, pos *int, t TDXTimeType) (time.Time, error) {
 		// yyyymmdd
 		var zipday uint32
 		zipday, err = ReadInt(b, pos, zipday)
+		if err != nil {
+			return t0, err
+		}
 		year := int(zipday / 10000)
 		month := int((zipday % 10000) / 100)
 		day := int(zipday % 100)
 		t0 = time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+		return t0, nil
+	case TDXTimeTypeHHMMSS:
+		var tRaw uint32
+		tRaw, err = ReadInt(b, pos, tRaw)
+		if err != nil {
+			return t0, err
+		}
+		hour := int(tRaw / 10000)
+		minute := int((tRaw % 10000) / 100)
+		second := int(tRaw % 100)
+		t0 = utils.GetTodayWithOffset(hour, minute, second)
 		return t0, nil
 	default:
 		err = errors.New("unsupported TDXTimeType")
@@ -222,6 +238,9 @@ func FormatTDXDate(t0 time.Time, t TDXTimeType) uint32 {
 		// FIXME: time.Date() return month as a time.Month,
 		// so this type assert worked depend on time.Month defined by iota.
 		return uint32(y*10000 + int(m)*100 + d)
+	case TDXTimeTypeHHMMSS:
+		h, m, s := t0.Clock()
+		return uint32(h*10000 + m*100 + s)
 	default:
 		panic("unsupported TDXTimeType")
 	}

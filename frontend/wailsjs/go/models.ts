@@ -6,18 +6,18 @@ export namespace api {
 	    serverStatus = "serverStatus",
 	    subscribeBroadcast = "subscribeBroadcast",
 	}
-	export class ExportStruct {
-	    F0: models.ServerStatus;
-	    F1: proto.RealtimeInfoRespItem[];
+	export class QuoteSubscribeResp {
+	    RealtimeInfo: proto.RealtimeInfoRespItem;
+	    Frame: models.QuoteFrameDataSingleValue;
 	
 	    static createFrom(source: any = {}) {
-	        return new ExportStruct(source);
+	        return new QuoteSubscribeResp(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.F0 = this.convertValues(source["F0"], models.ServerStatus);
-	        this.F1 = this.convertValues(source["F1"], proto.RealtimeInfoRespItem);
+	        this.RealtimeInfo = this.convertValues(source["RealtimeInfo"], proto.RealtimeInfoRespItem);
+	        this.Frame = this.convertValues(source["Frame"], models.QuoteFrameDataSingleValue);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -38,6 +38,41 @@ export namespace api {
 		    return a;
 		}
 	}
+	export class ExportStruct {
+	    F0: models.ServerStatus;
+	    F1: proto.RealtimeInfoRespItem[];
+	    F2: QuoteSubscribeResp;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExportStruct(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.F0 = this.convertValues(source["F0"], models.ServerStatus);
+	        this.F1 = this.convertValues(source["F1"], proto.RealtimeInfoRespItem);
+	        this.F2 = this.convertValues(source["F2"], QuoteSubscribeResp);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class TodayQuoteResp {
 	    Code: number;
 	    Message: string;
@@ -331,7 +366,7 @@ export namespace proto {
 	    CurrentVolume: number;
 	    TotalAmount: number;
 	    TickNo: number;
-	    TickInHHmmss: number;
+	    TickMilliSecTimestamp: number;
 	    AfterHoursVolume: number;
 	    SellAmount: number;
 	    BuyAmount: number;
@@ -367,7 +402,7 @@ export namespace proto {
 	        this.CurrentVolume = source["CurrentVolume"];
 	        this.TotalAmount = source["TotalAmount"];
 	        this.TickNo = source["TickNo"];
-	        this.TickInHHmmss = source["TickInHHmmss"];
+	        this.TickMilliSecTimestamp = source["TickMilliSecTimestamp"];
 	        this.AfterHoursVolume = source["AfterHoursVolume"];
 	        this.SellAmount = source["SellAmount"];
 	        this.BuyAmount = source["BuyAmount"];

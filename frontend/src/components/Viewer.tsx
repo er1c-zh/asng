@@ -54,11 +54,15 @@ function Viewer(props: ViewerProps) {
     }
     const cancel = EventsOn(
       api.MsgKey.subscribeBroadcast,
-      (d: proto.RealtimeInfoRespItem) => {
-        if (d.Code !== meta!.ID.Code) {
+      (d: api.QuoteSubscribeResp) => {
+        if (d.RealtimeInfo.Code !== meta!.ID.Code) {
           return;
         }
-        setDataWrapper(d);
+        setDataWrapper(d.RealtimeInfo);
+        updatePriceLine({
+          append: true,
+          data: [d.Frame],
+        });
         setRefreshAt(new Date());
       }
     );
@@ -179,17 +183,7 @@ function Viewer(props: ViewerProps) {
               return (
                 <div key={d.TickNo} className="flex flex-row">
                   <div className="grow-0">
-                    {(d.TickInHHmmss / 10000 - 1)
-                      .toFixed(0)
-                      .toString()
-                      .padStart(2, "0") +
-                      ":" +
-                      ((d.TickInHHmmss / 100) % 100)
-                        .toFixed(0)
-                        .toString()
-                        .padStart(2, "0") +
-                      ":" +
-                      (d.TickInHHmmss % 100).toString().padStart(2, "0")}
+                    {new Date(d.TickMilliSecTimestamp).toLocaleTimeString()}
                   </div>
                   <div className="flex flex-grow"></div>
                   <div className="grow-0 pr-4">

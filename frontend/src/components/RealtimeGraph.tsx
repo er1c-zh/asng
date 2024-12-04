@@ -144,7 +144,7 @@ function RealtimeGraphProps(props: RealtimeGraphProps) {
   return (
     <div className="flex flex-col w-full h-full">
       <div className="flex flex-row space-x-2 grow-0">
-        <div className="flex">分时图</div>
+        <div className="flex">分时图 {props.priceLine.length}</div>
       </div>
       <div ref={containerRef} className="flex grow">
         <svg

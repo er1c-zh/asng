@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"sort"
+	"time"
 )
 
 var RealtimeSubscribeType0 uint16 = 0x0029
@@ -105,20 +106,20 @@ type RealtimeInfoRespItem struct {
 	CurrentVolume       int64
 	TotalAmount         float64
 
-	TickNo           uint16
-	TickInHHmmss     uint32 // time in in hhmmss
-	AfterHoursVolume int64  // 盘后量
-	SellAmount       int64
-	BuyAmount        int64
-	TickPriceDelta   int64
-	OpenAmount       int64
-	OrderBookRaw     [4 * 5]int64 // order book
-	OrderBookRows    []OrderBookRow
-	RUint0           uint16
-	RUint1           uint32
-	RUint2           uint32
-	RB               string
-	RIntArray2       [4*5 + 4]int64
+	TickNo                uint16
+	TickMilliSecTimestamp int64
+	AfterHoursVolume      int64 // 盘后量
+	SellAmount            int64
+	BuyAmount             int64
+	TickPriceDelta        int64
+	OpenAmount            int64
+	OrderBookRaw          [4 * 5]int64 // order book
+	OrderBookRows         []OrderBookRow
+	RUint0                uint16
+	RUint1                uint32
+	RUint2                uint32
+	RB                    string
+	RIntArray2            [4*5 + 4]int64
 }
 
 type OrderBookRow struct {
@@ -161,10 +162,12 @@ func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, curs
 	if err != nil {
 		return err
 	}
-	obj.TickInHHmmss, err = ReadInt(buf, cursor, obj.TickInHHmmss)
+	var t0 time.Time
+	t0, err = ReadTDXTime(buf, cursor, TDXTimeTypeHHMMSS)
 	if err != nil {
 		return err
 	}
+	obj.TickMilliSecTimestamp = t0.UnixMilli()
 
 	obj.AfterHoursVolume, err = ReadTDXInt(buf, cursor)
 	if err != nil {

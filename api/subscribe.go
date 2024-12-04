@@ -32,9 +32,15 @@ func NewQuoteSubscripition(app *App) *QuoteSubscripition {
 	}
 }
 
+type QuoteSubscribeResp struct {
+	RealtimeInfo proto.RealtimeInfoRespItem
+	Frame        models.QuoteFrameDataSingleValue
+}
+
 func (a *QuoteSubscripition) Start() {
 	a.app.cli.RegisterRealtimeConsumer(func(d proto.RealtimeInfoRespItem) {
-		runtime.EventsEmit(a.app.ctx, string(MsgKeySubscribeBroadcast), d)
+		runtime.EventsEmit(a.app.ctx, string(MsgKeySubscribeBroadcast),
+			a.app.generateQuoteSubscribeResp(d))
 	})
 }
 
@@ -44,4 +50,17 @@ func (a *App) Subscribe(req []models.StockIdentity) *proto.RealtimeInfoResp {
 		return nil
 	}
 	return resp
+}
+
+func (a *App) generateQuoteSubscribeResp(d proto.RealtimeInfoRespItem) QuoteSubscribeResp {
+	return QuoteSubscribeResp{
+		RealtimeInfo: d,
+		Frame: models.QuoteFrameDataSingleValue{
+			QuoteFrame: models.QuoteFrame{
+				TimeInMs: d.TickMilliSecTimestamp,
+			},
+			Value: d.CurrentPrice,
+			Scale: int64(a.stockMetaMap[d.ID].Scale),
+		},
+	}
 }

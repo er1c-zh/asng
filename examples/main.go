@@ -131,12 +131,12 @@ func testSubscribe() {
 	// 	{Market: uint8(models.MarketSH), Code: "600000"},
 	// 	{Market: uint8(models.MarketSZ), Code: "300050"},
 	// })
-	// resp, err := cli.RealtimeInfo([]proto.StockQuery{{Market: uint8(models.MarketSH), Code: "600000"}})
+	resp, err := cli.RealtimeInfo([]models.StockIdentity{{MarketType: models.MarketSH, Code: "600000"}})
 	// resp, err := cli.TXToday(models.StockIdentity{
 	// 	MarketType: models.MarketSH, Code: "600000",
 	// })
-	resp, err := cli.TXRealtime(models.StockIdentity{
-		MarketType: models.MarketSH, Code: "600000"}, 0)
+	// resp, err := cli.TXRealtime(models.StockIdentity{
+	// MarketType: models.MarketSH, Code: "600000"}, 0)
 	// resp, err := cli.CandleStick(models.StockIdentity{MarketType: models.MarketSH, Code: "600000"}, proto.CandleStickPeriodType_Day, 0)
 	if err != nil {
 		fmt.Printf("error:%s", err)
