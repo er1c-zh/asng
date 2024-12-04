@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"fmt"
 )
 
 func (c *Client) CandleStick(id models.StockIdentity,
@@ -118,11 +117,11 @@ func (c *CandleStick) UnmarshalResp(ctx context.Context, body []byte) error {
 	priceDelta := int64(0)
 	for i := 0; i < int(c.Resp.Size); i += 1 {
 		item := CandleStickItem{}
-		y, m, d, h, M, err := ReadTDXTime(body, &cursor, c.Req.Type.TimeType())
+		t0, err := ReadTDXTime(body, &cursor, c.Req.Type.TimeType())
 		if err != nil {
 			return err
 		}
-		item.TimeDesc = fmt.Sprintf("%04d-%02d-%02d %02d:%02d", y, m, d, h, M)
+		item.TimeDesc = t0.Format("2006-01-02 15:04")
 
 		nextPriceDelta := priceDelta
 		item.Open, err = ReadTDXInt(body, &cursor)

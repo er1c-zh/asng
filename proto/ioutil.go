@@ -171,37 +171,41 @@ const (
 	TDXTimeTypeYYYYMMDD       TDXTimeType = 1
 )
 
-func ReadTDXTime(b []byte, pos *int, t TDXTimeType) (year int, month int, day int, hour int, minute int, err error) {
+func ReadTDXTime(b []byte, pos *int, t TDXTimeType) (time.Time, error) {
+	var err error
+	t0 := time.Unix(0, 0)
 	switch t {
 	case TDXTimeTypeCompressedTime:
 		var zipday, tminutes uint16
 		zipday, err = ReadInt(b, pos, zipday)
 		if err != nil {
-			return
+			return t0, err
 		}
 		tminutes, err = ReadInt(b, pos, tminutes)
 		if err != nil {
-			return
+			return t0, err
 		}
-		year = int((zipday >> 11) + 2004)
-		month = int((zipday % 2048) / 100)
-		day = int((zipday % 2048) % 100)
-		hour = int(tminutes / 60)
-		minute = int(tminutes % 60)
-		return
+		year := int((zipday >> 11) + 2004)
+		month := int((zipday % 2048) / 100)
+		day := int((zipday % 2048) % 100)
+		hour := int(tminutes / 60)
+		minute := int(tminutes % 60)
+		// TODO: test i18n quote
+		t0 = time.Date(year, time.Month(month), day, hour, minute, 0, 0, time.Local)
+		return t0, nil
 	case TDXTimeTypeYYYYMMDD:
 		// yyyymmdd
 		var zipday uint32
 		zipday, err = ReadInt(b, pos, zipday)
-		year = int(zipday / 10000)
-		month = int((zipday % 10000) / 100)
-		day = int(zipday % 100)
-		hour = 15
+		year := int(zipday / 10000)
+		month := int((zipday % 10000) / 100)
+		day := int(zipday % 100)
+		t0 = time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+		return t0, nil
 	default:
-		err = errors.New("unsupported CandleStickPeriodType")
-		return
+		err = errors.New("unsupported TDXTimeType")
+		return t0, err
 	}
-	return
 }
 
 func FormatTDXDate(t0 time.Time, t TDXTimeType) uint32 {
