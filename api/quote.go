@@ -68,6 +68,7 @@ func (a *App) TodayQuote(id models.StockIdentity) TodayQuoteResp {
 		resp.Volume = append(resp.Volume, models.QuoteFrameDataSingleValue{
 			QuoteFrame: f.Clone().SetType(models.QuoteTypeBar),
 			Value:      item.Volume,
+			Scale:      1,
 		})
 	}
 	return resp

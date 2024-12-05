@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
-	"sort"
 	"time"
 )
 
@@ -114,17 +113,12 @@ type RealtimeInfoRespItem struct {
 	TickPriceDelta        int64
 	OpenAmount            int64
 	OrderBookRaw          [4 * 5]int64 // order book
-	OrderBookRows         []OrderBookRow
+	OrderBook             models.Orderbook
 	RUint0                uint16
 	RUint1                uint32
 	RUint2                uint32
 	RB                    string
 	RIntArray2            [4*5 + 4]int64
-}
-
-type OrderBookRow struct {
-	Price  int64
-	Volume int64
 }
 
 func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, cursor *int) error {
@@ -292,18 +286,17 @@ func (obj *RealtimeInfo) UnmarshalResp(ctx context.Context, data []byte) error {
 		item.Low = item.CurrentPrice + item.LowDelta
 
 		for i := 0; i < len(item.OrderBookRaw); i += 4 {
-			item.OrderBookRows = append(item.OrderBookRows, OrderBookRow{
+			item.OrderBook.Bids = append(item.OrderBook.Bids, models.Order{
 				Price:  item.CurrentPrice + item.OrderBookRaw[i],
 				Volume: item.OrderBookRaw[i+2],
 			})
-			item.OrderBookRows = append(item.OrderBookRows, OrderBookRow{
+			item.OrderBook.Asks = append(item.OrderBook.Asks, models.Order{
 				Price:  item.CurrentPrice + item.OrderBookRaw[i+1],
 				Volume: item.OrderBookRaw[i+3],
 			})
 		}
-		sort.Slice(item.OrderBookRows, func(i, j int) bool {
-			return item.OrderBookRows[i].Price < item.OrderBookRows[j].Price
-		})
+
+		item.OrderBook.Format()
 
 		obj.Resp.ItemList = append(obj.Resp.ItemList, item)
 	}

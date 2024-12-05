@@ -169,6 +169,52 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class Order {
+	    Price: number;
+	    Volume: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Order(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Price = source["Price"];
+	        this.Volume = source["Volume"];
+	    }
+	}
+	export class Orderbook {
+	    Asks: Order[];
+	    Bids: Order[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Orderbook(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Asks = this.convertValues(source["Asks"], Order);
+	        this.Bids = this.convertValues(source["Bids"], Order);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ProcessInfo {
 	    Type: number;
 	    Msg: string;
@@ -337,20 +383,6 @@ export namespace proto {
 		    return a;
 		}
 	}
-	export class OrderBookRow {
-	    Price: number;
-	    Volume: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new OrderBookRow(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Price = source["Price"];
-	        this.Volume = source["Volume"];
-	    }
-	}
 	export class RealtimeInfoRespItem {
 	    ID: models.StockIdentity;
 	    Market: number;
@@ -375,7 +407,7 @@ export namespace proto {
 	    TickPriceDelta: number;
 	    OpenAmount: number;
 	    OrderBookRaw: number[];
-	    OrderBookRows: OrderBookRow[];
+	    OrderBook: models.Orderbook;
 	    RUint0: number;
 	    RUint1: number;
 	    RUint2: number;
@@ -411,7 +443,7 @@ export namespace proto {
 	        this.TickPriceDelta = source["TickPriceDelta"];
 	        this.OpenAmount = source["OpenAmount"];
 	        this.OrderBookRaw = source["OrderBookRaw"];
-	        this.OrderBookRows = this.convertValues(source["OrderBookRows"], OrderBookRow);
+	        this.OrderBook = this.convertValues(source["OrderBook"], models.Orderbook);
 	        this.RUint0 = source["RUint0"];
 	        this.RUint1 = source["RUint1"];
 	        this.RUint2 = source["RUint2"];

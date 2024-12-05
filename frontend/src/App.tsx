@@ -1,13 +1,11 @@
-import { act, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import CommandPanel from "./components/CommandPanel";
 import Terminal from "./components/Terminal";
 import Portal from "./components/Portal";
 import Viewer from "./components/Viewer";
 import StatusBar from "./components/StatusBar";
-import KeyMessage from "./components/KeyMessage";
 import { ServerStatus } from "../wailsjs/go/api/App";
-import { LogInfo } from "../wailsjs/runtime/runtime";
 import { models } from "../wailsjs/go/models";
 
 function App() {
@@ -63,7 +61,6 @@ function App() {
         width: entries[0].contentRect.width,
         height: entries[0].contentRect.height,
       });
-      console.log(entries[0].contentRect);
     });
     resizeObserver.observe(statusBarRef.current!);
     return () => {
