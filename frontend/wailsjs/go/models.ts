@@ -8,8 +8,7 @@ export namespace api {
 	}
 	export class QuoteSubscribeResp {
 	    RealtimeInfo: proto.RealtimeInfoRespItem;
-	    PriceFrame: models.QuoteFrameDataSingleValue;
-	    VolumeFrame: models.QuoteFrameDataSingleValue;
+	    Frame: models.QuoteFrameRealtime;
 	
 	    static createFrom(source: any = {}) {
 	        return new QuoteSubscribeResp(source);
@@ -18,8 +17,7 @@ export namespace api {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.RealtimeInfo = this.convertValues(source["RealtimeInfo"], proto.RealtimeInfoRespItem);
-	        this.PriceFrame = this.convertValues(source["PriceFrame"], models.QuoteFrameDataSingleValue);
-	        this.VolumeFrame = this.convertValues(source["VolumeFrame"], models.QuoteFrameDataSingleValue);
+	        this.Frame = this.convertValues(source["Frame"], models.QuoteFrameRealtime);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -78,9 +76,7 @@ export namespace api {
 	export class TodayQuoteResp {
 	    Code: number;
 	    Message: string;
-	    Price: models.QuoteFrameDataSingleValue[];
-	    AvgPrice: models.QuoteFrameDataSingleValue[];
-	    Volume: models.QuoteFrameDataSingleValue[];
+	    Frames: models.QuoteFrameRealtime[];
 	
 	    static createFrom(source: any = {}) {
 	        return new TodayQuoteResp(source);
@@ -90,9 +86,7 @@ export namespace api {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Code = source["Code"];
 	        this.Message = source["Message"];
-	        this.Price = this.convertValues(source["Price"], models.QuoteFrameDataSingleValue);
-	        this.AvgPrice = this.convertValues(source["AvgPrice"], models.QuoteFrameDataSingleValue);
-	        this.Volume = this.convertValues(source["Volume"], models.QuoteFrameDataSingleValue);
+	        this.Frames = this.convertValues(source["Frames"], models.QuoteFrameRealtime);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -229,15 +223,16 @@ export namespace models {
 	        this.Msg = source["Msg"];
 	    }
 	}
-	export class QuoteFrameDataSingleValue {
+	export class QuoteFrameRealtime {
 	    Type: number;
 	    TimeInMs: number;
 	    TimeSpanInMs: number;
-	    Value: number;
-	    Scale: number;
+	    Price: value.V;
+	    AvgPrice: value.V;
+	    Volume: value.V;
 	
 	    static createFrom(source: any = {}) {
-	        return new QuoteFrameDataSingleValue(source);
+	        return new QuoteFrameRealtime(source);
 	    }
 	
 	    constructor(source: any = {}) {
@@ -245,9 +240,28 @@ export namespace models {
 	        this.Type = source["Type"];
 	        this.TimeInMs = source["TimeInMs"];
 	        this.TimeSpanInMs = source["TimeSpanInMs"];
-	        this.Value = source["Value"];
-	        this.Scale = source["Scale"];
+	        this.Price = this.convertValues(source["Price"], value.V);
+	        this.AvgPrice = this.convertValues(source["AvgPrice"], value.V);
+	        this.Volume = this.convertValues(source["Volume"], value.V);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class ServerStatus {
 	    Connected: boolean;
@@ -502,6 +516,27 @@ export namespace proto {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace value {
+	
+	export class V {
+	    T: number;
+	    V: number;
+	    Scale: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new V(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.T = source["T"];
+	        this.V = source["V"];
+	        this.Scale = source["Scale"];
+	    }
 	}
 
 }

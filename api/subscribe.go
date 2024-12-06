@@ -2,6 +2,7 @@ package api
 
 import (
 	"asng/models"
+	"asng/models/value"
 	"asng/proto"
 	"time"
 
@@ -34,8 +35,7 @@ func NewQuoteSubscripition(app *App) *QuoteSubscripition {
 
 type QuoteSubscribeResp struct {
 	RealtimeInfo proto.RealtimeInfoRespItem
-	PriceFrame   models.QuoteFrameDataSingleValue
-	VolumeFrame  models.QuoteFrameDataSingleValue
+	Frame        models.QuoteFrameRealtime
 }
 
 func (a *QuoteSubscripition) Start() {
@@ -60,19 +60,13 @@ func (a *App) Subscribe(req []models.StockIdentity) []QuoteSubscribeResp {
 func (a *App) generateQuoteSubscribeResp(d proto.RealtimeInfoRespItem) QuoteSubscribeResp {
 	return QuoteSubscribeResp{
 		RealtimeInfo: d,
-		PriceFrame: models.QuoteFrameDataSingleValue{
+		Frame: models.QuoteFrameRealtime{
 			QuoteFrame: models.QuoteFrame{
 				TimeInMs: d.TickMilliSecTimestamp,
 			},
-			Value: d.CurrentPrice,
-			Scale: int64(a.stockMetaMap[d.ID].Scale),
-		},
-		VolumeFrame: models.QuoteFrameDataSingleValue{
-			QuoteFrame: models.QuoteFrame{
-				TimeInMs: d.TickMilliSecTimestamp,
-			},
-			Value: d.CurrentVolume,
-			Scale: 1,
+			Price:    value.IntWithScale(d.CurrentPrice, int64(a.stockMetaMap[d.ID].Scale)),
+			AvgPrice: value.IntWithScale(int64(d.TotalAmount)/int64(d.TotalVolume), int64(a.stockMetaMap[d.ID].Scale)),
+			Volume:   value.Int(d.CurrentVolume),
 		},
 	}
 }

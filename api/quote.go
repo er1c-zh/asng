@@ -2,6 +2,7 @@ package api
 
 import (
 	"asng/models"
+	"asng/models/value"
 	"asng/proto"
 	"asng/utils"
 	"fmt"
@@ -19,13 +20,16 @@ func (a *App) CandleStick(id models.StockIdentity, period proto.CandleStickPerio
 
 type TodayQuoteResp struct {
 	models.BaseResp
-	Price    []models.QuoteFrameDataSingleValue
-	AvgPrice []models.QuoteFrameDataSingleValue
-	Volume   []models.QuoteFrameDataSingleValue
+	Frames []models.QuoteFrameRealtime
 }
 
 func (a *App) TodayQuote(id models.StockIdentity) TodayQuoteResp {
 	resp := TodayQuoteResp{}
+	resp.BaseResp = models.BaseResp{
+		Code:    0,
+		Message: "success",
+	}
+
 	var err error
 	tx, err := a.cli.TXToday(id)
 	if err != nil {
@@ -34,14 +38,17 @@ func (a *App) TodayQuote(id models.StockIdentity) TodayQuoteResp {
 		resp.Message = "fail"
 		return resp
 	}
-	resp.Price = make([]models.QuoteFrameDataSingleValue, 0)
-	resp.AvgPrice = make([]models.QuoteFrameDataSingleValue, 0)
-	resp.Volume = make([]models.QuoteFrameDataSingleValue, 0)
+
+	resp.Frames = make([]models.QuoteFrameRealtime, 0, len(tx))
 
 	t0 := utils.GetTodayWithOffset(0, 0, 0)
 	txOffsetInOneMinute := 0
 	tickCur := uint16(0)
 
+	var (
+		totalVolume int64 = 0
+		totalSum    int64 = 0
+	)
 	for _, item := range tx {
 		if item.Tick == tickCur {
 			txOffsetInOneMinute += 3 // 3 seconds per tick
@@ -56,19 +63,15 @@ func (a *App) TodayQuote(id models.StockIdentity) TodayQuoteResp {
 				UnixMilli(),
 			TimeSpanInMs: time.Second.Milliseconds(),
 		}
-		resp.Price = append(resp.Price, models.QuoteFrameDataSingleValue{
-			QuoteFrame: f.Clone().SetType(models.QuoteTypeLine),
-			Value:      item.Price,
-			Scale:      10000,
-		})
-		// resp.AvgPrice = append(resp.AvgPrice, models.QuoteFrameDataSingleValue{
-		// 	QuoteFrame: f.Clone().SetType(models.QuoteTypeLine),
-		// 	Value:      item.AvgPrice,
-		// })
-		resp.Volume = append(resp.Volume, models.QuoteFrameDataSingleValue{
-			QuoteFrame: f.Clone().SetType(models.QuoteTypeBar),
-			Value:      item.Volume,
-			Scale:      1,
+
+		totalVolume += item.Volume
+		totalSum += item.Price * item.Volume
+
+		resp.Frames = append(resp.Frames, models.QuoteFrameRealtime{
+			QuoteFrame: f,
+			Price:      value.IntWithScale(item.Price, 10000),
+			AvgPrice:   value.IntWithScale(totalSum/totalVolume, 10000),
+			Volume:     value.IntWithScale(item.Volume, 1),
 		})
 	}
 	return resp

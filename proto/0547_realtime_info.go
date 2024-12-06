@@ -118,7 +118,7 @@ type RealtimeInfoRespItem struct {
 	RUint1                uint32
 	RUint2                uint32
 	RB                    string
-	RIntArray2            [4*5 + 4]int64
+	RIntArray2            [4*5 + 4]int64 // l2 的十档数据
 }
 
 func (obj *RealtimeInfoRespItem) Unmarshal(ctx context.Context, buf []byte, cursor *int) error {

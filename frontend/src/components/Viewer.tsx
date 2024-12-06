@@ -15,19 +15,11 @@ type ViewerProps = {
 
 function Viewer(props: ViewerProps) {
   const [data, setData] = useState<proto.RealtimeInfoRespItem>();
-  const [dataList, setDataList] = useState<proto.RealtimeInfoRespItem[]>([]);
-  const setDataWrapper = useCallback(
-    (d: proto.RealtimeInfoRespItem) => {
-      setData(d);
-      setDataList(dataList.concat(d));
-    },
-    [dataList]
-  );
   const [meta, setMeta] = useState<models.StockMetaItem>();
-  const [transaction, updateTransaction] = useReducer(
+  const [quoteList, updateQuoteList] = useReducer(
     (
-      state: models.QuoteFrameDataSingleValue[],
-      data: { action: string; data: models.QuoteFrameDataSingleValue[] }
+      state: models.QuoteFrameRealtime[],
+      data: { action: string; data: models.QuoteFrameRealtime[] }
     ) => {
       switch (data.action) {
         case "init":
@@ -42,26 +34,9 @@ function Viewer(props: ViewerProps) {
     },
     []
   );
-
+  const [yesterdayData, setYesterdayData] =
+    useState<proto.RealtimeInfoRespItem>();
   const [refreshAt, setRefreshAt] = useState(new Date());
-  const [priceLine, updatePriceLine] = useReducer(
-    (
-      state: models.QuoteFrameDataSingleValue[],
-      data: { action: string; data: models.QuoteFrameDataSingleValue[] }
-    ) => {
-      switch (data.action) {
-        case "init":
-          return data.data.concat(state);
-        case "append":
-          return state.concat(data.data);
-        case "reset":
-          return [];
-        default:
-          return state;
-      }
-    },
-    []
-  );
 
   // 0. get meta
   useEffect(() => {
@@ -72,11 +47,7 @@ function Viewer(props: ViewerProps) {
     });
   }, [props.id]);
   useEffect(() => {
-    updatePriceLine({
-      action: "reset",
-      data: [],
-    });
-    updateTransaction({
+    updateQuoteList({
       action: "reset",
       data: [],
     });
@@ -93,20 +64,19 @@ function Viewer(props: ViewerProps) {
         if (d.RealtimeInfo.Code !== meta!.ID.Code) {
           return;
         }
-        setDataWrapper(d.RealtimeInfo);
-        updatePriceLine({
+        updateQuoteList({
           action: "append",
-          data: [d.PriceFrame],
-        });
-        updateTransaction({
-          action: "append",
-          data: [d.VolumeFrame],
+          data: [d.Frame],
         });
         setRefreshAt(new Date());
+        const ri = d.RealtimeInfo;
+        console.log(
+          `${ri.CurrentPrice} ${ri.RUint0} ${ri.RUint1} ${ri.RUint2} ${ri.RIntArray2}`
+        );
       }
     );
     return cancel;
-  }, [meta, setDataWrapper]);
+  }, [meta]);
 
   // 2. fetch current data and subscribe
   useEffect(() => {
@@ -117,7 +87,15 @@ function Viewer(props: ViewerProps) {
       Subscribe([meta.ID]).then((d) => {
         if (d[0]?.RealtimeInfo.Code === meta.ID.Code) {
           setData(d[0].RealtimeInfo);
+          updateQuoteList({
+            action: "append",
+            data: [d[0].Frame],
+          });
           setRefreshAt(new Date());
+          const ri = d[0].RealtimeInfo;
+          console.log(
+            `${ri.CurrentPrice} ${ri.RUint0} ${ri.RUint1} ${ri.RUint2} ${ri.RIntArray2}`
+          );
         }
       });
     }, 15 * 1000);
@@ -127,15 +105,9 @@ function Viewer(props: ViewerProps) {
         console.error(d);
         return;
       }
-      console.log(d.Price);
-      updatePriceLine({
+      updateQuoteList({
         action: "init",
-        data: d.Price,
-      });
-      console.log(d.Volume);
-      updateTransaction({
-        action: "init",
-        data: d.Volume,
+        data: d.Frames,
       });
     });
     return () => {
@@ -168,12 +140,16 @@ function Viewer(props: ViewerProps) {
             />
           </div>
           <div className="flex w-full h-1/2 min-w-full">
-            <RealtimeGraph priceLine={priceLine} />
+            {meta && data ? (
+              <RealtimeGraph meta={meta} realtime={data} quote={quoteList} />
+            ) : (
+              <div>Loading...</div>
+            )}
           </div>
         </div>
         <div className="flex flex-row w-1/2 grow">
           <div className="flex flex-col w-1/3 overflow-y-scroll">
-            <TxViewer priceLine={priceLine} volumeLine={transaction} />
+            <TxViewer quote={quoteList} />
           </div>
           {data && meta ? (
             <div className="flex flex-col w-1/3">
@@ -197,61 +173,34 @@ function Viewer(props: ViewerProps) {
 export default Viewer;
 
 type TxViewerProps = {
-  priceLine: models.QuoteFrameDataSingleValue[];
-  volumeLine: models.QuoteFrameDataSingleValue[];
+  quote: models.QuoteFrameRealtime[];
 };
 
 function TxViewer(props: TxViewerProps) {
-  const renderCount = 50;
-  const [tx, setTx] = useState<
-    {
-      price: models.QuoteFrameDataSingleValue;
-      volume: models.QuoteFrameDataSingleValue;
-    }[]
-  >();
-
-  useEffect(() => {
-    if (props.priceLine.length == props.volumeLine.length) {
-      setTx(
-        props.priceLine.map((d, i) => {
-          return {
-            price: d,
-            volume: props.volumeLine[i],
-          };
-        })
-      );
-    }
-  }, [props.priceLine, props.volumeLine]);
-
-  if (!props.priceLine || !props.volumeLine) {
+  if (!props.quote) {
     return <div>Loading...</div>;
-  }
-  if (props.priceLine.length != props.volumeLine.length) {
-    console.error("Price line and volume line length not equal");
-    console.log(props.priceLine.length, props.volumeLine.length);
-    return <div>Price line and volume line length not equal</div>;
   }
 
   return (
     <Virtuoso
       style={{ height: "100%" }}
-      data={tx}
+      data={props.quote}
       topItemCount={1}
-      initialTopMostItemIndex={tx?.length}
+      initialTopMostItemIndex={props.quote.length}
       itemContent={(_, d) => {
         return (
-          <div key={d.price.TimeInMs} className="flex flex-row bg-gray-900">
+          <div key={d.TimeInMs} className="flex flex-row bg-gray-900">
             <div className="grow-0 pr-1">
-              {new Date(d.price.TimeInMs).toLocaleTimeString()}
+              {new Date(d.TimeInMs).toLocaleTimeString()}
             </div>
             <div className="grow-0 pr-1">
-              {formatPrice(d.price.Value, d.price.Scale)}
+              {formatPrice(d.Price.V, d.Price.Scale)}
             </div>
-            <div className="grow-0 pr-1">{d.volume.Value}</div>
+            <div className="grow-0 pr-1">{d.Volume.V}</div>
             <div className="flex flex-grow"></div>
             <div className="grow-0 pr-4">
               {formatAmount(
-                (d.volume.Value /* 手 */ * 100 * d.price.Value) / d.price.Scale
+                (d.Volume.V /* 手 */ * 100 * d.Price.V) / d.Price.Scale
               )}
               元
             </div>

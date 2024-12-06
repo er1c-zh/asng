@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, models, proto } from "../../wailsjs/go/models";
-import { TodayQuote } from "../../wailsjs/go/api/App";
+import { models, proto } from "../../wailsjs/go/models";
 import * as d3 from "d3";
-import { LogInfo } from "../../wailsjs/runtime/runtime";
 import { formatPrice } from "./Viewer";
 
 type RealtimeGraphProps = {
-  priceLine: models.QuoteFrameDataSingleValue[];
+  quote: models.QuoteFrameRealtime[];
+  meta: models.StockMetaItem;
+  realtime: proto.RealtimeInfoRespItem;
 };
 
 function RealtimeGraph(props: RealtimeGraphProps) {
@@ -29,25 +29,34 @@ function RealtimeGraph(props: RealtimeGraphProps) {
     };
   }, [containerRef.current]);
 
-  const ml = 40;
-  const mr = 20;
+  const ml = 45;
+  const mr = 45;
   const mt = 20;
   const mb = 20;
   const svgRef = useRef<SVGSVGElement>(null);
   const xAxisRef = useRef<SVGGElement>(null);
   const yAxisRef = useRef<SVGGElement>(null);
+  const keyYAxisRef = useRef<SVGGElement>(null);
   const lineGroupRef = useRef<SVGPathElement>(null);
   const [priceRange, setPriceRange] = useState([0, 0]);
-
   useEffect(() => {
-    let set = [];
-
     // max and min price in price line
-    set.push(Math.max(...props.priceLine.map((p) => p.Value / p.Scale)));
-    set.push(Math.min(...props.priceLine.map((p) => p.Value / p.Scale)));
+    let max = 0;
+    let min = 1e10;
+    props.quote.forEach((p) => {
+      max = Math.max(max, p.Price.V / p.Price.Scale);
+      min = Math.min(min, p.Price.V / p.Price.Scale);
+    });
+    const delta = Math.max(
+      Math.abs(props.realtime.YesterdayClose / props.meta.Scale - min),
+      Math.abs(max - props.realtime.YesterdayClose / props.meta.Scale)
+    );
 
-    setPriceRange([Math.min(...set), Math.max(...set)]);
-  }, [props.priceLine]);
+    setPriceRange([
+      props.realtime.YesterdayClose / props.meta.Scale - delta,
+      props.realtime.YesterdayClose / props.meta.Scale + delta,
+    ]);
+  }, [props.meta, props.quote]);
 
   const [scale, setScale] = useState({
     X: d3.scaleTime(),
@@ -128,29 +137,64 @@ function RealtimeGraph(props: RealtimeGraphProps) {
           .attr("stroke-opacity", 0.5)
           .attr("stroke-dasharray", "2,2")
       )
-      .call((g) => g.selectAll(".tick text").attr("x", -32).attr("dy", 2))
+      .call((g) => g.selectAll(".tick text").attr("x", -ml))
+      .call((g) => g.select(".domain").remove());
+
+    d3.select(keyYAxisRef.current!)
+      .call(
+        d3
+          .axisRight(scale.Y)
+          .tickValues(
+            [props.realtime.YesterdayClose / props.meta.Scale].concat(
+              priceRange
+            )
+          )
+          .tickSize(dimensions.width - ml - mr)
+          .tickFormat(d3.format(".2f"))
+      )
+      // .call((g) => g.selectAll(".tick text").attr("x", -32).attr("dy", 2))
       .call((g) => g.select(".domain").remove());
   }, [dimensions, scale]);
 
-  const lineBuilder = useCallback(
+  const priceLineBuilder = useCallback(
     d3
-      .line<models.QuoteFrameDataSingleValue>()
+      .line<models.QuoteFrameRealtime>()
       .x((d) => scale.X(new Date(d.TimeInMs)))
-      .y((d) => scale.Y(d.Value / d.Scale)),
+      .y((d) => scale.Y(d.Price.V / d.Price.Scale)),
     [scale]
   );
-
+  const avgPriceLineBuilder = useCallback(
+    d3
+      .line<models.QuoteFrameRealtime>()
+      .x((d) => scale.X(new Date(d.TimeInMs)))
+      .y((d) => scale.Y(d.AvgPrice.V / d.AvgPrice.Scale)),
+    [scale]
+  );
   // draw price line
   const pricePathRef = useRef<SVGLineElement>(null);
   useEffect(() => {
-    if (!lineBuilder || props.priceLine.length == 0) {
+    if (!priceLineBuilder || props.quote.length == 0) {
       return;
     }
-    d3.select(pricePathRef.current).attr("d", lineBuilder(props.priceLine));
+    d3.select(pricePathRef.current).attr("d", priceLineBuilder(props.quote));
     return () => {
       d3.select(pricePathRef.current).attr("d", "");
     };
-  }, [lineBuilder, props.priceLine, pricePathRef.current]);
+  }, [priceLineBuilder, props.quote, pricePathRef.current]);
+  // draw avg price line
+  const avgPricePathRef = useRef<SVGLineElement>(null);
+  useEffect(() => {
+    if (!avgPriceLineBuilder || props.quote.length == 0) {
+      return;
+    }
+    d3.select(avgPricePathRef.current).attr(
+      "d",
+      avgPriceLineBuilder(props.quote)
+    );
+    return () => {
+      d3.select(avgPricePathRef.current).attr("d", "");
+    };
+  }, [avgPriceLineBuilder, props.quote, avgPricePathRef.current]);
 
   // draw crosshair
   const crosshairRef = useRef<SVGGElement>(null);
@@ -208,31 +252,38 @@ function RealtimeGraph(props: RealtimeGraphProps) {
     focused,
   ]);
 
-  const [frame, setFrame] = useState<models.QuoteFrameDataSingleValue>();
+  const [frame, setFrame] = useState<models.QuoteFrameRealtime>();
   // set current frame
   useEffect(() => {
     if (!focused) {
-      setFrame(props.priceLine[0] ? props.priceLine[0] : undefined);
+      if (props.quote.length > 0) {
+        setFrame(props.quote[props.quote.length - 1]);
+      }
       return;
     }
     const curXInMilliSec = scale.X.invert(curPos[0]).getTime();
     let minDelta = curXInMilliSec;
     let minDeltaIndex = 0;
-    props.priceLine.forEach((p, i) => {
+    props.quote.forEach((p, i) => {
       if (Math.abs(p.TimeInMs - curXInMilliSec) < minDelta) {
         minDelta = Math.abs(p.TimeInMs - curXInMilliSec);
         minDeltaIndex = i;
       }
     });
-    setFrame(props.priceLine[minDeltaIndex]);
-  }, [curPos, scale, focused, props.priceLine]);
+    setFrame(props.quote[minDeltaIndex]);
+  }, [curPos, scale, focused, props.quote]);
 
   return (
     <div className="flex flex-col w-full h-full">
       <div className="flex flex-row space-x-2 grow-0">
-        <div className="flex">分时图 {props.priceLine.length}</div>
-        <div>{frame ? new Date(frame.TimeInMs).toLocaleTimeString() : ""}</div>
-        <div>{frame ? (frame.Value / frame.Scale).toFixed(2) : ""}</div>
+        <div className="flex">分时图 {props.quote.length}</div>
+        <div>{frame ? new Date(frame.TimeInMs).toLocaleTimeString() : "-"}</div>
+        <div>
+          {frame ? formatPrice(frame.Price.V / frame.Price.Scale) : "-"}
+        </div>
+        <div className="text-yellow-500">
+          {frame ? formatPrice(frame.AvgPrice.V / frame.AvgPrice.Scale) : "-"}
+        </div>
       </div>
       <div ref={containerRef} className="flex grow">
         <svg
@@ -245,11 +296,18 @@ function RealtimeGraph(props: RealtimeGraphProps) {
             transform={`translate(0, ${dimensions.height - mb})`}
           />
           <g ref={yAxisRef} transform={`translate(${ml}, 0)`} />
+          <g ref={keyYAxisRef} transform={`translate(${ml}, 0)`} />
           <g ref={lineGroupRef}>
             <path
               ref={pricePathRef}
               fill="none"
               stroke="white"
+              strokeWidth={0.5}
+            />
+            <path
+              ref={avgPricePathRef}
+              fill="none"
+              stroke="yellow"
               strokeWidth={0.5}
             />
           </g>

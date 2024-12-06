@@ -1,6 +1,9 @@
 package models
 
-import "fmt"
+import (
+	"asng/models/value"
+	"fmt"
+)
 
 type StockIdentity struct {
 	MarketType MarketType
@@ -68,6 +71,13 @@ type QuoteFrameDataSingleValue struct {
 	QuoteFrame
 	Value int64
 	Scale int64
+}
+
+type QuoteFrameRealtime struct {
+	QuoteFrame
+	Price    value.V
+	AvgPrice value.V
+	Volume   value.V
 }
 
 type QuoteFrameDataCandleStick struct {
