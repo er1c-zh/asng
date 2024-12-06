@@ -16,20 +16,20 @@ type Handshake struct {
 type HandshakeReq struct {
 	// dumb padding      offset
 	// Method uint16   // 0x0
-	R0         uint8    // 0x2 0x0
+	R0         uint8    // 0x2 0x0 strlen(&byte_E0CE51) != 0 then 1
 	LoginType  [50]byte // 0x3 guest
-	R1         [50]byte // 0x35
-	R2         [10]byte // 0x67
+	R1         [50]byte // 0x35 TODO a4
+	R2         [10]byte // 0x67 *(0x1154E8C), 10 byte
 	Padding0   byte     // 0x71
 	Flag0      uint8    // 0x72 8 - 1 ConnectCfgOtherWhichAutoUpInfoMinusOne
-	Flag1      uint8    // 0x73 0x1
-	Flag2      uint16   // 0x74 0x0104
-	Flag3      uint8    // 0x76 0x1
+	Flag1      uint8    // 0x73 0x1 fixed in code
+	Flag2      uint16   // 0x74 0x0104 fixed in code
+	Flag3      uint8    // 0x76 0x1 *(0xE0CA34)
 	Padding1   byte     // 0x77
 	Version    [4]byte  // 0x78 7.66 => 0xB81EF540
 	MinVersion [4]byte  // 0x7C 6.04 => 0xAE47C140
-	Flag4      uint8    // 0x80 0x1 from param
-	Flag5      [2]uint8 // 0x81 0x0101
+	Flag4      uint8    // 0x80 0x1 *(0x1154E0C)
+	Flag5      [2]uint8 // 0x81 if (!*(115AC48)) 0x0101
 	Padding2   [48]byte // 0x83 padding
 	MacAddr    [12]byte // 0xB3 000C29F019C2  // mac address
 	Padding3   [87]byte // 0xBE padding

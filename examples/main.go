@@ -104,11 +104,11 @@ func testSubscribe() {
 	}
 	fmt.Printf("connected\n")
 
-	_, err = cli.TDXHandshake()
-	if err != nil {
-		fmt.Printf("error:%s", err)
-		return
-	}
+	// _, err = cli.TDXHandshake()
+	// if err != nil {
+	// 	fmt.Printf("error:%s", err)
+	// 	return
+	// }
 
 	err = cli.Heartbeat()
 	if err != nil {
@@ -131,10 +131,13 @@ func testSubscribe() {
 	// 	{Market: uint8(models.MarketSH), Code: "600000"},
 	// 	{Market: uint8(models.MarketSZ), Code: "300050"},
 	// })
-	resp, err := cli.RealtimeInfo([]models.StockIdentity{{MarketType: models.MarketSH, Code: "600000"}})
+	// resp, err := cli.RealtimeInfo([]models.StockIdentity{{MarketType: models.MarketSH, Code: "600000"}})
 	// resp, err := cli.TXToday(models.StockIdentity{
 	// 	MarketType: models.MarketSH, Code: "600000",
 	// })
+	resp, err := cli.TXHistory(models.StockIdentity{
+		MarketType: models.MarketSH, Code: "600000",
+	}, time.Now().AddDate(0, 0, -1), 0)
 	// resp, err := cli.TXRealtime(models.StockIdentity{
 	// MarketType: models.MarketSH, Code: "600000"}, 0)
 	// resp, err := cli.CandleStick(models.StockIdentity{MarketType: models.MarketSH, Code: "600000"}, proto.CandleStickPeriodType_Day, 0)
